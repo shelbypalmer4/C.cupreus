@@ -42,7 +42,8 @@ spectro(CCtest_1,
         ovlp = 95,
         scale = F,
         flim = c(0,6),
-        listen = F)
+        listen = F,
+        grid = F)
 par(new = T)
 timer(CCtest_1,
       dmin=0.03, 
@@ -148,3 +149,19 @@ for (i in 1:length(CC1df$note_number)) {
 }
 
 head(CC1df)
+
+CC1
+
+spectro(b1, 
+        wl = 512, 
+        ovlp = 95,
+        collevels = seq(-42,0,6), 
+        flim = c(0, 10),
+        osc = F, 
+        scale = F, 
+        grid = F, 
+        cexlab = 0.8, 
+        cexaxis = 1.1,
+        palette = reverse.gray.colors.2,
+        tlab = NULL,
+        flab = NULL)
