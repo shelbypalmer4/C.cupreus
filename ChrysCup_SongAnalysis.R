@@ -165,3 +165,29 @@ spectro(b1,
         palette = reverse.gray.colors.2,
         tlab = NULL,
         flab = NULL)
+
+#### 28 July 2023: make a folder of usable recordings in the github repo ####
+setwd("C:/Users/Shelby Palmer/Desktop/C.cupreus")
+list.files()
+scores <- read.csv("Recording_Scoring_July_20.csv")
+head(scores)
+length(rownames(scores))
+
+# all of the recordings which we agreed were 3 or better
+scores[which(scores$Dan<=3 & scores$Shelby<=3),]
+
+# all of the recordings on which we disagreed
+disagreements <- rbind(scores[which(scores$Dan>3 & scores$Shelby<=3),],
+                       scores[which(scores$Dan<=3 & scores$Shelby>3),])
+# the borderline cases
+disagreements[which(disagreements$Dan %in% c(3,4) & disagreements$Shelby %in% c(3,4)),]
+
+# the consensus cases
+# oh no my battery is dying
+disagreements[which(disagreements$Recording_ID %in% c(718994,582801601,567357981,390677901)),]
+
+# dataframe with all the recordings that passed QC1
+usables <- rbind(scores[which(scores$Dan<=3 & scores$Shelby<=3),],
+                 disagreements[which(disagreements$Dan %in% c(3,4) & disagreements$Shelby %in% c(3,4)),],
+                 disagreements[which(disagreements$Recording_ID %in% c(718994,582801601,567357981,390677901)),])
+
