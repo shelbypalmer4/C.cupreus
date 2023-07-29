@@ -191,3 +191,4 @@ usables <- rbind(scores[which(scores$Dan<=3 & scores$Shelby<=3),],
                  disagreements[which(disagreements$Dan %in% c(3,4) & disagreements$Shelby %in% c(3,4)),],
                  disagreements[which(disagreements$Recording_ID %in% c(718994,582801601,567357981,390677901)),])
 
+write.csv(usables, "usable_recordings.csv")
