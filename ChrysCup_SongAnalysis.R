@@ -192,3 +192,36 @@ usables <- rbind(scores[which(scores$Dan<=3 & scores$Shelby<=3),],
                  disagreements[which(disagreements$Recording_ID %in% c(718994,582801601,567357981,390677901)),])
 
 write.csv(usables, "usable_recordings.csv")
+
+
+#### 1 September 2023: write a SNR function that works on chopped recordings ####
+library(seewave)
+library(tuneR)
+setwd("C:/Users/Shelby Palmer/Desktop/C.cupreus/chopped_recordings")
+cc <- readWave(list.files()[1])
+# x is a wav file 
+realSNR <- function (x) {
+  per <- timer(x, 
+               threshold = 10, 
+               dmin = 0.05, 
+               msmooth = c(512, 98),
+               plot = F)
+  noiseamp <- mean(env(cutw(x,
+                            from = 0,
+                            to = per$s.start[1],
+                            output = "Wave"),
+                       msmooth = c(512, 98),
+                       plot = F))
+  for (i in 1:length(per$s.start)) {
+    sigamp <- mean(env(cutw(x,
+                            from = per$s.start[i],
+                            to = per$s.end[i],
+                            output = "Wave"),
+                       msmooth = c(512, 98),
+                       plot = F))
+  }
+  realSNR <- sigamp/noiseamp
+  return(realSNR)
+}
+
+realSNR(cc)
