@@ -200,10 +200,10 @@ library(tuneR)
 setwd("C:/Users/Shelby Palmer/Desktop/C.cupreus/chopped_recordings")
 cc <- readWave(list.files()[1])
 # x is a wav file 
-realSNR <- function (x) {
+realSNR <- function (x, dmin, threshold) {
   per <- timer(x, 
-               threshold = 10, 
-               dmin = 0.05, 
+               threshold = threshold, 
+               dmin = dmin, 
                msmooth = c(512, 98),
                plot = F)
   noiseamp <- mean(env(cutw(x,
@@ -224,4 +224,4 @@ realSNR <- function (x) {
   return(realSNR)
 }
 
-realSNR(cc)
+realSNR(cc, 0.05, 10)
