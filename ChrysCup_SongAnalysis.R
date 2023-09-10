@@ -280,7 +280,7 @@ head(list.files())
 # function for generating images
 cutspec2 <- function(x) {
   a <- readWave(x)
-  png(filename = paste(getwd(), "/QC1_figs/", x, ".png", sep = ""),
+  png(filename = paste(getwd(), "/QC_10_figs/", x, ".png", sep = ""),
       width = 800,
       height = 300)
   spectro(a, 
@@ -304,5 +304,31 @@ cutspec2 <- function(x) {
 # apply over working directory
 lapply(list.files(pattern = ".wav"), cutspec2)
 
+# function for generating images with window size 256
+cutspec3 <- function(x) {
+  a <- readWave(x)
+  png(filename = paste(getwd(), "/QC_12_figs/", x, ".png", sep = ""),
+      width = 800,
+      height = 300)
+  spectro(a, 
+          wl = 512, 
+          ovlp = 95, 
+          collevels = seq(-42,0,6),
+          flim = c(0, 7),
+          osc = F, 
+          scale = F, 
+          colgrid = "gray", 
+          cexlab = 0.8,
+          cexaxis = 0.7)
+  par(new=T)
+  try(timer(a, 
+            dmin = 0.05,
+            envt = "hil",
+            msmooth=c(512, 95),
+            threshold = 12))
+  dev.off()
+}
+# apply over working directory
+lapply(list.files(pattern = ".wav"), cutspec3)
 
 
