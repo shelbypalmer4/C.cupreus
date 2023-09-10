@@ -118,8 +118,33 @@ CCMinFreq <- function(x,y) {
   return(z)
 }
 
+CCStdevFreq <- function(x,y) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- sd(meanspec(cutw(x,
+                              from = y$s.start[j],
+                              to = y$s.end[j],
+                              output = "Wave"), 
+                         flim=c(1, 5.1), 
+                         wl = 512,
+                         ovlp = 95,
+                         dB='max0',
+                         plot = F)[,1][meanspec(cutw(x,
+                                                     from = y$s.start[j],
+                                                     to = y$s.end[j],
+                                                     output = "Wave"), 
+                                                flim=c(1, 5.1), 
+                                                wl = 512,
+                                                ovlp = 95, 
+                                                dB='max0',
+                                                plot = F)[,2]>crit])
+  }
+  return(z)
+}
+
+
 ## Dominant frequency measurements
-CCMaxDFreq <- function(x,y) {
+CCMaxDomFreq <- function(x,y) {
   z <- c()
   for (j in 1:length(y$s.start)) {
     z[j] <- max(dfreq(cutw(x,
@@ -128,13 +153,13 @@ CCMaxDFreq <- function(x,y) {
                            output = "Wave",
                            plot = F), 
                       ovlp = 95,
-                      wl = 1024,
+                      wl = 512,
                       plot = F)[,2])
   }
   return(z)
 }
 
-CCMinDFreq <- function(x,y) {
+CCMinDomFreq <- function(x,y) {
   z <- c()
   for (j in 1:length(y$s.start)) {
     z[j] <- min(dfreq(cutw(x,
@@ -143,13 +168,13 @@ CCMinDFreq <- function(x,y) {
                            output = "Wave",
                            plot = F), 
                       ovlp = 95,
-                      wl = 1024,
+                      wl = 512,
                       plot = F)[,2])
   }
   return(z)
 }
 
-CCMeanDFreq<-function(x,y) {
+CCMeanDomFreq<-function(x,y) {
   z <- c()
   for (j in 1:length(y$s.start)) {
     z[j] <- mean(dfreq(cutw(x,
@@ -158,13 +183,13 @@ CCMeanDFreq<-function(x,y) {
                             output = "Wave",
                             plot = F),
                        ovlp = 95,
-                       wl = 1024,
+                       wl = 512,
                        plot = F)[,2])
   }
   return(z)
 }
 
-CCMedianDFreq <- function(x,y) {
+CCMedianDomFreq <- function(x,y) {
   z <- c()
   for (j in 1:length(y$s.start)) {
     z[j] <- median(dfreq(cutw(x,
@@ -173,13 +198,13 @@ CCMedianDFreq <- function(x,y) {
                               output = "Wave",
                               plot = F),
                          ovlp = 95,
-                         wl = 1024,
+                         wl = 512,
                          plot = F)[,2])
   }
   return(z)
 }
 
-CCStdevDFreq <- function(x,y) {
+CCStdevDomFreq <- function(x,y) {
   z <- c()
   for (j in 1:length(y$s.start)) {
     z[j] <- sd(dfreq(cutw(x,
@@ -188,13 +213,13 @@ CCStdevDFreq <- function(x,y) {
                           output = "Wave",
                           plot = F),
                      ovlp = 95,
-                     wl = 1024,
+                     wl = 512,
                      plot = F)[,2])
   }
   return(z)
 }
 
-CCDFreqMaxSlope <- function(x,y) {
+CCDomFreqMaxSlope <- function(x,y) {
   z <- c()
   for (j in 1:length(y$s.start)) {
     z[j] <- max(abs(diff(dfreq(cutw(x,
@@ -203,7 +228,7 @@ CCDFreqMaxSlope <- function(x,y) {
                                     output = "Wave",
                                     plot = F),
                                ovlp = 95,
-                               wl = 1024,
+                               wl = 512,
                                threshold = 5,
                                plot = F)[,2])))
   }
