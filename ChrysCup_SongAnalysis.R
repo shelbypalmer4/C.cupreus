@@ -1,3 +1,5 @@
+
+
 #### Measuring Songs of African Emerald Cuckoos (Chrysococcyx cupreus)####
 
 library(tuneR)
@@ -220,8 +222,52 @@ realSNR <- function (x, dmin, threshold) {
                        msmooth = c(512, 98),
                        plot = F))
   }
-  realSNR <- sigamp/noiseamp
   return(realSNR)
 }
 
 realSNR(cc, 0.05, 10)
+
+# Filter and resample all recordings with individual songs
+## resample to 22050 kHz, 16 bits
+
+filt_resamp <- function(x) {
+  #set wd to input folder
+  setwd("C:/Users/dzapa/OneDrive/Documents/GitHub/C.cupreus/chopped_recordings")
+  
+  #read in sound file
+  wav <- readWave(x)
+  
+  #apply butterworth filter, order=5, low-pass cutoff=2000 Hz
+  wav_fir <- fir(wav, from = 1000, to=5100, output="Wave")
+  ## bwfilter automatically converts down to 16 bits (can't handle more)
+  
+  #downsample to 22050 Hz sampling rate
+  wav_fir_rs <- 
+    if (wav_fir@samp.rate != 22050) {
+      resamp(wav_fir, g = 22050, output = "Wave")
+    } else {
+      wav_fir}
+      
+  ## also automatically converts anything >16 bits down to 16 bits
+  
+  #need to rescale wave object so it can be written to a Wave file
+  wav_final <- normalize(wav_fir_rs, unit=c("16"))
+  
+  #change working directory to the output folder
+  setwd("C:/Users/dzapa/OneDrive/Documents/GitHub/C.cupreus/Filtered")
+  
+  #save this modified sound in the output folder
+  ## if extensible=T file won't open in some sound analysis programs
+  writeWave(wav_final, filename=paste("filtered", x, sep="_"), extensible=F)
+  
+}
+
+# apply to all recordings
+
+files <- list.files()
+
+lapply(files, FUN=filt_resamp)
+
+
+
+
