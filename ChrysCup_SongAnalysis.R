@@ -1,3 +1,5 @@
+
+
 #### Measuring Songs of African Emerald Cuckoos (Chrysococcyx cupreus)####
 
 library(tuneR)
@@ -192,3 +194,115 @@ usables <- rbind(scores[which(scores$Dan<=3 & scores$Shelby<=3),],
                  disagreements[which(disagreements$Recording_ID %in% c(718994,582801601,567357981,390677901)),])
 
 write.csv(usables, "usable_recordings.csv")
+
+
+#### 1 September 2023: write a SNR function that works on chopped recordings ####
+library(seewave)
+library(tuneR)
+setwd("C:/Users/Shelby Palmer/Desktop/C.cupreus/chopped_recordings")
+cc <- readWave(list.files()[1])
+# x is a wav file 
+realSNR <- function (x, dmin, threshold) {
+  per <- timer(x, 
+               threshold = threshold, 
+               dmin = dmin, 
+               msmooth = c(512, 98),
+               plot = F)
+  noiseamp <- mean(env(cutw(x,
+                            from = 0,
+                            to = per$s.start[1],
+                            output = "Wave"),
+                       msmooth = c(512, 98),
+                       plot = F))
+  for (i in 1:length(per$s.start)) {
+    sigamp <- mean(env(cutw(x,
+                            from = per$s.start[i],
+                            to = per$s.end[i],
+                            output = "Wave"),
+                       msmooth = c(512, 98),
+                       plot = F))
+  }
+  return(realSNR)
+}
+
+realSNR(cc, 0.05, 10)
+
+# Filter and resample all recordings with individual songs
+## resample to 22050 kHz, 16 bits
+
+filt_resamp <- function(x) {
+  #set wd to input folder
+  setwd("C:/Users/dzapa/OneDrive/Documents/GitHub/C.cupreus/chopped_recordings")
+  
+  #read in sound file
+  wav <- readWave(x)
+  
+  #apply butterworth filter, order=5, low-pass cutoff=2000 Hz
+  wav_fir <- fir(wav, from = 1000, to=5100, output="Wave")
+  ## bwfilter automatically converts down to 16 bits (can't handle more)
+  
+  #downsample to 22050 Hz sampling rate
+  wav_fir_rs <- 
+    if (wav_fir@samp.rate != 22050) {
+      resamp(wav_fir, g = 22050, output = "Wave")
+    } else {
+      wav_fir}
+      
+  ## also automatically converts anything >16 bits down to 16 bits
+  
+  #need to rescale wave object so it can be written to a Wave file
+  wav_final <- normalize(wav_fir_rs, unit=c("16"))
+  
+  #change working directory to the output folder
+  setwd("C:/Users/dzapa/OneDrive/Documents/GitHub/C.cupreus/Filtered")
+  
+  #save this modified sound in the output folder
+  ## if extensible=T file won't open in some sound analysis programs
+  writeWave(wav_final, filename=paste("filtered", x, sep="_"), extensible=F)
+  
+}
+
+# apply to all recordings
+
+files <- list.files()
+
+lapply(files, FUN=filt_resamp)
+
+
+#### 10 September 2023: Create spectrograms with timer() overlay for recording quality check and timer() amplitude threshold determination ####
+
+# set working directory to the location of the sound files
+setwd("C:/Users/Shelby Palmer/Desktop/C.cupreus/filter_resamp")
+head(list.files())
+
+# manually make a new folder in the working directory for the figures named "QC_10_figs"
+
+# function for generating images
+cutspec2 <- function(x) {
+  a <- readWave(x)
+  png(filename = paste(getwd(), "/QC1_figs/", x, ".png", sep = ""),
+      width = 800,
+      height = 300)
+  spectro(a, 
+          wl = 512, 
+          ovlp = 95, 
+          collevels = seq(-42,0,6),
+          flim = c(0, 7),
+          osc = F, 
+          scale = F, 
+          colgrid = "gray", 
+          cexlab = 0.8,
+          cexaxis = 0.7)
+  par(new=T)
+  try(timer(a, 
+            dmin = 0.05,
+            envt = "hil",
+            msmooth=c(512, 90),
+            threshold = 10))
+  dev.off()
+}
+# apply over working directory
+lapply(list.files(pattern = ".wav"), cutspec2)
+
+
+

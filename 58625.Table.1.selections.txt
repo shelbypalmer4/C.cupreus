@@ -1,3 +1,0 @@
-Selection	View	Channel	Begin Time (s)	End Time (s)	Low Freq (Hz)	High Freq (Hz)
-1	Waveform 1	1	14.743507590	16.775037697	0.0	22050.0
-2	Waveform 1	1	27.005845736	28.920376727	0.0	22050.0
