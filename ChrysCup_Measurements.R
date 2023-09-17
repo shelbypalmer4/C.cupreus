@@ -1,7 +1,8 @@
 ################# ACOUSTIC MEASUREMENTS OF THE SONG OF CHRYSOCOCCYX CUPREUS #################
 
-#### 10 September 2023: Write functions to extract the measurements listed in the cuckoo thoughts document, first at the note level ####
-
+#### 10-17 September 2023: Write functions to extract the measurements listed in the cuckoo thoughts document, first at the note level ####
+library(tuneR)
+library(seewave)
 ## Turning the Podos mean frequency spectrum method into functions
 # get the first note of an example recording
 setwd("C:/Users/Shelby Palmer/Desktop/C.cupreus/filter_resamp")
@@ -12,7 +13,7 @@ spectro(ex,
         scale = F,
         flim = c(1, 5.1),
         wl = 256,
-        msmooth)
+        ovlp = 95)
 
 # if you eliminate all the object-making steps, the Podos method becomes this:
 crit <- -25 # WARNING: arbitrary value
@@ -69,7 +70,7 @@ actualmeanspec[which(actualmeanspec[,2]>upperq),1]
 
 #### FINALIZED FUNCTIONS START HERE ####
 ## Frequency measurements from the mean frequency spectrum
-## Values that may need changing: wl, ovlp%
+## Values that may need changing: wl, ovlp% !!!!!!!!!!!!!!
 CCMaxFreq <- function(x,y) {
   z <- c()
   for (j in 1:length(y$s.start)) {

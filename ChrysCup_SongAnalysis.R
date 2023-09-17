@@ -278,7 +278,7 @@ head(list.files())
 # manually make a new folder in the working directory for the figures named "QC_10_figs"
 
 # function for generating images
-cutspec2 <- function(x) {
+cutspec10 <- function(x) {
   a <- readWave(x)
   png(filename = paste(getwd(), "/QC_10_figs/", x, ".png", sep = ""),
       width = 800,
@@ -302,10 +302,13 @@ cutspec2 <- function(x) {
   dev.off()
 }
 # apply over working directory
-lapply(list.files(pattern = ".wav"), cutspec2)
+lapply(list.files(pattern = ".wav"), cutspec10)
 
-# function for generating images with window size 256
-cutspec3 <- function(x) {
+# now checking a higher threshold
+# manually make a new folder in the working directory for the figures named "QC_12_figs"
+
+# function for generating images with amplitude threshold of 12%
+cutspec12 <- function(x) {
   a <- readWave(x)
   png(filename = paste(getwd(), "/QC_12_figs/", x, ".png", sep = ""),
       width = 800,
@@ -329,6 +332,6 @@ cutspec3 <- function(x) {
   dev.off()
 }
 # apply over working directory
-lapply(list.files(pattern = ".wav"), cutspec3)
+lapply(list.files(pattern = ".wav"), cutspec12)
 
 
