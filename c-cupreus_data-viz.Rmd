@@ -1,0 +1,241 @@
+---
+title: "Chrysococcyx cupreus"
+author: "Shelby M Palmer"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### We first want to visualize where all recordings are coming from  
+Read in XC and ML metadata containing lat/long  
+Map points onto a projection of Africa  
+```{r}
+library(dplyr)
+setwd("C:/Users/Shelby Palmer/Desktop/C.cupreus")
+xcmeta.cc <- read.csv("XC_metadata.csv")
+mlmeta.cc <- read.csv("ML_metadata.csv")
+usable.cc <- read.csv("usable_recordings.csv")
+
+# rename ID column for ML recordings
+colnames(mlmeta.cc)[which(colnames(mlmeta.cc)=="ML.Catalog.Number")] <- "Recording_ID"
+
+# get a dataframe with lat/long and recording ID
+latlong.cc <- rbind(xcmeta.cc[,which(colnames(xcmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID"))],
+                    mlmeta.cc[,which(colnames(mlmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID"))])
+
+# subset to only high-quality recordings and remove NAs
+latlong.cc <- latlong.cc[which(latlong.cc$Recording_ID %in% usable.cc$Recording_ID),]
+latlong.cc <- latlong.cc[-which(is.na(latlong.cc$Latitude)),]
+
+# get shapefile and map
+library(ggplot2)
+library(ggspatial)
+library(ggmap)
+library(terra)
+library(sf)
+library(rgdal) # deprecated, but need for readOGR function
+
+# Establish the area for mapping
+register_stadiamaps("25ab9b46-a04f-4a66-b808-b55cae87f72d")
+ccmap <- get_stadiamap(bbox = c(min(latlong.cc$Longitude)-10,
+                                min(latlong.cc$Latitude)-5,
+                                max(latlong.cc$Longitude)+10,
+                                max(latlong.cc$Latitude)+15),
+                      maptype = "stamen_terrain",
+                      zoom = 5,
+                      color = "color",
+                      force = T)
+# Read in the shapefiles (downloaded from https://www.iucnredlist.org/resources/spatial-data-download)
+cc_shape <- st_read(dsn = "./redlist_species_data_c-cupreus", layer = "data_0")
+
+
+# Coerce into dataframes 
+cc_latlongs <- as.data.frame(st_coordinates(cc_shape$geometry)[,1:2])
+cc_shape_df <- cbind(cc_latlongs, rep(0.1, length(cc_latlongs$X)))
+colnames(cc_shape_df) <- c("lat", "long", "group")
+
+cc_map <- map_data()
+
+# Make the map
+png("cc_map.png",
+    width = 7,
+    height = 7,
+    units = "in",
+    res = 600)
+ggmap(ccmap) +
+  geom_polygon(data = fortify(cc_shape),
+               aes(long, lat, group = group),
+               fill = "darkmagenta",
+               alpha = 0.4) +
+  geom_point(data = latlong.cc, 
+             aes(x = Longitude, 
+                 y = Latitude),
+             size = 2,
+             color = "darkmagenta",
+             alpha = 0.5) +
+  coord_map(projection = "mercator")
+dev.off()
+
+```
+
+### Testing threshold-based frequency measurements
+```{r}
+library(seewave)
+library(tuneR)
+library(dplyr)
+cleancc <- readWave(paste(getwd(), 
+                          "/practice_recordings/8596_23.94.wav", 
+                          sep = "")) %>%
+  fir(., from = 1000, to = 6000, bandpass = T, output = "Wave")
+noisycc <- readWave(paste(getwd(), 
+                          "/practice_recordings/8597_41.28.wav", 
+                          sep = "")) %>%
+  fir(., from = 1000, to = 6000, bandpass = T, output = "Wave")
+## Clean
+# timer objects
+cleannotes <- timer(cleancc, dmin = 0.05, threshold = 12, msmooth = c(512, 90))
+cleancc_1 <- cutw(cleancc, from = cleannotes$s.start[1], to = cleannotes$s.end[1], output = "Wave")
+# compute and visualize frequency spectrum
+spec(cleancc_1, flim = c(0, 5), alim = c(-40, 0), wl = 1024, ovlp = 95, dB = "max0")
+abline(h = -15, lty = 2)
+spectro(cleancc, flim = c(0,6), tlim = c(0,2), wl = 1024, ovlp = 95)
+# get min and max values
+crit <- -15 # WARNING: arbitrary value
+maxfreq <- max(meanspec(cleancc_1, 
+                        flim=c(0,6), 
+                        wl = 1024, 
+                        dB = "max0",
+                        plot=F)[,1][meanspec(cleancc_1, 
+                                                flim=c(0,6), 
+                                                wl = 1024, 
+                                                dB="max0",
+                                             plot=F)[,2]>crit])
+maxfreq
+
+minfreq <- min(spec(cleancc_1, 
+                        flim=c(0,6), 
+                        wl = 1024, 
+                        dB = "max0",
+                        plot=F)[,1][spec(cleancc_1, 
+                                                flim=c(0,6), 
+                                                wl = 1024, 
+                                                dB="max0",
+                                             plot=F)[,2]>crit])
+minfreq
+
+## Noisy
+# timer objects
+noisynotes <- timer(noisycc, dmin = 0.05, threshold = 12, msmooth = c(512, 90))
+noisycc_1 <- cutw(noisycc, from = noisynotes$s.start[1], to = noisynotes$s.end[1], output = "Wave")
+# compute and visualize frequency spectrum
+spec(noisycc_1, flim = c(0, 5), alim = c(-40, 0), wl = 1024, ovlp = 95, dB = "max0")
+abline(h = -15, lty = 2)
+spectro(noisycc, flim = c(0,6), tlim = c(0,2), wl = 1024, ovlp = 95)
+# get min and max
+maxfreq <- max(meanspec(noisycc_1, 
+                        flim=c(0,6), 
+                        wl = 1024, 
+                        dB = "max0",
+                        plot=F)[,1][meanspec(noisycc_1, 
+                                                flim=c(0,6), 
+                                                wl = 1024, 
+                                                dB="max0",
+                                             plot=F)[,2]>crit])
+maxfreq
+
+minfreq <- min(meanspec(noisycc_1, 
+                        flim=c(0,6), 
+                        wl = 1024, 
+                        dB = "max0",
+                        plot=F)[,1][spec(noisycc_1, 
+                                                flim=c(0,6), 
+                                                wl = 1024, 
+                                                dB="max0",
+                                             plot=F)[,2]>crit])
+minfreq
+
+## Try putting it in a function
+
+```
+
+## Functions to automate acoustic measurements at the note level  
+```{r}
+crit = -18 # chosen critical value
+CCMaxFreq <- function(x,y) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- max(meanspec(cutw(x,
+                              from = y$s.start[j],
+                              to = y$s.end[j],
+                              output = "Wave"), 
+                         flim=c(1, 6), 
+                         wl = 1024,
+                         ovlp = 95,
+                         dB='max0',
+                         plot = F)[,1][meanspec(cutw(x,
+                                                      from = y$s.start[j],
+                                                      to = y$s.end[j],
+                                                      output = "Wave"), 
+                                                 flim=c(1, 6), 
+                                                 wl = 1024,
+                                                 ovlp = 95, 
+                                                 dB='max0',
+                                                 plot = F)[,2]>crit])
+  }
+  return(z)
+}
+
+# compare with spectrograms
+CCMaxFreq(x = cleancc, y = cleannotes)
+CCMaxFreq(x = noisycc, y = noisynotes)
+
+spectro(cleancc, flim = c(0,6), tlim = c(0,2), wl = 1024, ovlp = 95)
+spectro(noisycc, flim = c(0,6), tlim = c(0,2), wl = 1024, ovlp = 95)
+
+# minimum frequency
+CCMinFreq <- function(x,y) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- min(meanspec(cutw(x,
+                              from = y$s.start[j],
+                              to = y$s.end[j],
+                              output = "Wave"), 
+                         flim=c(1, 6), 
+                         wl = 1024,
+                         ovlp = 95,
+                         dB='max0',
+                         plot = F)[,1][meanspec(cutw(x,
+                                                      from = y$s.start[j],
+                                                      to = y$s.end[j],
+                                                      output = "Wave"), 
+                                                 flim=c(1, 6), 
+                                                 wl = 1024,
+                                                 ovlp = 95, 
+                                                 dB='max0',
+                                                 plot = F)[,2]>crit])
+  }
+  return(z)
+}
+
+# Maximum dominant frequency
+maxdfreq <- function(x,y) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- max(dfreq(sound,
+                         tlim = c(signal$s.start[j],
+                                  signal$s.end[j]),
+                         wl = 1024,
+                         ovlp = 95,
+                         plot = F)[,2])
+  }
+  return(z)
+}
+
+
+
+
+```
+

@@ -6,24 +6,27 @@ library(seewave)
 ## Turning the Podos mean frequency spectrum method into functions
 # get the first note of an example recording
 setwd("C:/Users/Shelby Palmer/Desktop/C.cupreus/filter_resamp")
-ex <- readWave("filtered_Chrysococcyx-cupreus-280039_0.29.wav")
+# ex <- readWave("filtered_Chrysococcyx-cupreus-280039_0.29.wav")
+ex <- readWave("filtered_Chrysococcyx-cupreus-48244_0.16.wav")
 exT <- timer(ex, dmin = 0.05, envt = "hil", msmooth = c(512,95), threshold = 12, plot = F)
 ex1 <- cutw(ex, from = exT$s.start[1], to = exT$s.end[1], output = "Wave")
 spectro(ex,
         scale = F,
         flim = c(1, 5.1),
-        wl = 256,
+        wl = 512,
         ovlp = 95)
 
 # if you eliminate all the object-making steps, the Podos method becomes this:
-crit <- -25 # WARNING: arbitrary value
+crit <- -18 # WARNING: arbitrary value
 maxfreq <- max(meanspec(ex1, 
                         flim=c(1,8), 
                         wl = 1200, 
-                        dB='max0')[,1][meanspec(ex1, 
+                        dB='max0',
+                        plot=F)[,1][meanspec(ex1, 
                                                 flim=c(1,8), 
                                                 wl = 1200, 
-                                                dB='max0')[,2]>crit])
+                                                dB='max0',
+                                             plot=F)[,2]>crit])
 minfreq <- min(meanspec(ex1, 
                         flim=c(1,8), 
                         wl = 1200, 
@@ -49,19 +52,21 @@ peakfreq <- meanspec(ex1,
 bandwidth <- maxfreq-minfreq
 
 # let's look at the distribution of the amplitude values
-hist(meanspec(ex1, 
+meanspec(ex1, 
               flim=c(1,8), 
               wl = 1200, 
-              dB='max0')[,2],
-     breaks = 40)
+              dB='max0')[,2]
+abline(h=-20)
 # subset the mean frequency spectrum to only the values above -25
 actualmeanspec <- meanspec(ex1, 
                            flim=c(1,8), 
                            wl = 1200, 
-                           dB='max0')[which(meanspec(ex1, 
+                           dB='max0',
+                           plot=F)[which(meanspec(ex1, 
                                                      flim=c(1,8), 
                                                      wl = 1200, 
-                                                     dB='max0')[,2]>-24),]
+                                                     dB='max0',
+                                                     plot=F)[,2]>-24),]
 # histogram of this subset of amplitude values
 hist(actualmeanspec[,2], breaks = 20)
 # get the value marking the bottom of the upper quartile of these values (the top 25% threshold)
@@ -79,7 +84,7 @@ CCMaxFreq <- function(x,y) {
                               to = y$s.end[j],
                               output = "Wave"), 
                          flim=c(1, 5.1), 
-                         wl = 512,
+                         wl = 1200,
                          ovlp = 95,
                          dB='max0',
                          plot = F)[,1][meanspec(cutw(x,
@@ -87,7 +92,7 @@ CCMaxFreq <- function(x,y) {
                                                       to = y$s.end[j],
                                                       output = "Wave"), 
                                                  flim=c(1, 5.1), 
-                                                 wl = 512,
+                                                 wl = 1200,
                                                  ovlp = 95, 
                                                  dB='max0',
                                                  plot = F)[,2]>crit])
@@ -103,7 +108,7 @@ CCMinFreq <- function(x,y) {
                               to = y$s.end[j],
                               output = "Wave"), 
                          flim=c(1, 5.1), 
-                         wl = 512,
+                         wl = 1200,
                          ovlp = 95,
                          dB='max0',
                          plot = F)[,1][meanspec(cutw(x,
@@ -111,7 +116,7 @@ CCMinFreq <- function(x,y) {
                                                      to = y$s.end[j],
                                                      output = "Wave"), 
                                                 flim=c(1, 5.1), 
-                                                wl = 512,
+                                                wl = 1200,
                                                 ovlp = 95, 
                                                 dB='max0',
                                                 plot = F)[,2]>crit])
@@ -223,7 +228,7 @@ CCStdevDomFreq <- function(x,y) {
 CCDomFreqMaxSlope <- function(x,y) {
   z <- c()
   for (j in 1:length(y$s.start)) {
-    z[j] <- max(abs(diff(dfreq(cutw(x,
+    z[j] <- max(diff(dfreq(cutw(x,
                                     from = y$s.start[j],
                                     to = y$s.end[j],
                                     output = "Wave",
@@ -231,7 +236,42 @@ CCDomFreqMaxSlope <- function(x,y) {
                                ovlp = 95,
                                wl = 512,
                                threshold = 5,
-                               plot = F)[,2])))
+                               plot = F)[,2]))
   }
   return(z)
 }
+
+CCDomFreqMinSlope <- function(x,y) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- min(diff(dfreq(cutw(x,
+                                    from = y$s.start[j],
+                                    to = y$s.end[j],
+                                    output = "Wave",
+                                    plot = F),
+                               ovlp = 95,
+                               wl = 512,
+                               threshold = 5,
+                               plot = F)[,2]))
+  }
+  return(z)
+}
+
+
+
+# n=50000
+# mv=10
+# sd1=2
+# xs=rnorm(n=n,mean=mv,sd=sd1)
+# zs=(xs-mv)/sd1
+# Chisq.vec=zs^2
+# par(mfrow=c(3,1))
+# hist(xs)
+# abline(v=mean(xs),
+#        col="red")
+# hist(zs)
+# abline(v=mean(zs),
+#        col="red")
+# hist(Chisq.vec)
+# abline(v=mean(Chisq.vec),
+#        col="red")
