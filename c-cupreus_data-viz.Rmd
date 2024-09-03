@@ -14,7 +14,7 @@ Read in XC and ML metadata containing lat/long
 Map points onto a projection of Africa  
 ```{r}
 library(dplyr)
-setwd("C:/Users/Shelby Palmer/Desktop/C.cupreus")
+setwd("C:/Users/spalm/Desktop/C.cupreus")
 xcmeta.cc <- read.csv("XC_metadata.csv")
 mlmeta.cc <- read.csv("ML_metadata.csv")
 usable.cc <- read.csv("usable_recordings.csv")
@@ -30,54 +30,44 @@ latlong.cc <- rbind(xcmeta.cc[,which(colnames(xcmeta.cc)%in%c("Latitude", "Longi
 latlong.cc <- latlong.cc[which(latlong.cc$Recording_ID %in% usable.cc$Recording_ID),]
 latlong.cc <- latlong.cc[-which(is.na(latlong.cc$Latitude)),]
 
-# get shapefile and map
+### Make a map
 library(ggplot2)
 library(ggspatial)
-library(ggmap)
-library(terra)
 library(sf)
-library(rgdal) # deprecated, but need for readOGR function
+# remotes::install_github("afrimapr/afrilearndata")
+library(afrilearndata) # shapefiles for Africa
 
-# Establish the area for mapping
-register_stadiamaps("25ab9b46-a04f-4a66-b808-b55cae87f72d")
-ccmap <- get_stadiamap(bbox = c(min(latlong.cc$Longitude)-10,
-                                min(latlong.cc$Latitude)-5,
-                                max(latlong.cc$Longitude)+10,
-                                max(latlong.cc$Latitude)+15),
-                      maptype = "stamen_terrain",
-                      zoom = 5,
-                      color = "color",
-                      force = T)
-# Read in the shapefiles (downloaded from https://www.iucnredlist.org/resources/spatial-data-download)
+# Read in range map shapefile (downloaded from https://www.iucnredlist.org/resources/spatial-data-download)
 cc_shape <- st_read(dsn = "./redlist_species_data_c-cupreus", layer = "data_0")
 
-
-# Coerce into dataframes 
-cc_latlongs <- as.data.frame(st_coordinates(cc_shape$geometry)[,1:2])
-cc_shape_df <- cbind(cc_latlongs, rep(0.1, length(cc_latlongs$X)))
-colnames(cc_shape_df) <- c("lat", "long", "group")
-
-cc_map <- map_data()
-
 # Make the map
-png("cc_map.png",
+png("cc_map_range.png",
     width = 7,
     height = 7,
     units = "in",
     res = 600)
-ggmap(ccmap) +
-  geom_polygon(data = fortify(cc_shape),
-               aes(long, lat, group = group),
-               fill = "darkmagenta",
-               alpha = 0.4) +
+ggplot() +
+  geom_sf(data = st_geometry(africountries)) +
+  geom_sf(data = st_transform(cc_shape)[1,],
+          color = "goldenrod3",
+          fill = "goldenrod3",
+          alpha = 0.5) +
+  geom_sf(data = st_transform(cc_shape)[2,],
+          color = "indianred",
+          fill = "indianred",
+          alpha = 0.5) +
   geom_point(data = latlong.cc, 
              aes(x = Longitude, 
                  y = Latitude),
-             size = 2,
-             color = "darkmagenta",
-             alpha = 0.5) +
-  coord_map(projection = "mercator")
+             size = 1.5,
+             color = "black",
+             alpha = 0.5,
+             shape = 19) +
+  coord_sf(xlim = c(-20, 52),
+           ylim = c(-35, 20)) +
+  theme_bw()
 dev.off()
+
 
 ```
 
