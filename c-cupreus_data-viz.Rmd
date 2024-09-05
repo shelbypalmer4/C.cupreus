@@ -157,11 +157,16 @@ minfreq
 `t` is the total number of element divisions (set `t = 1` for whole-element measurements)  
 `n` is the element division # for which this measurement is desired
 ```{r}
+# get an example recording
+ccex <- readWave(paste(getwd(),
+                       "/filter_resamp/filtered_23167_26.00.wav",
+                       sep = ""))
+ccex.s <- timer(ccex, threshold = 12, msmooth = c(512, 95), dmin = 0.01)
 crit = -20 # chosen critical value
 # maximum frequency
 CCMaxFreq <- function(x, y, t, n) {
   z <- c()
-  for (j in 1:length(y$s.start)) {
+  for (j in 2:length(y$s.start)) {
     z[j] <- max(meanspec(x,
                          from = y$s.start[j]+(y$s[j]*((n-1)/t)),
                          to = y$s.start[j]+(y$s[j]*(n/t)), 
@@ -181,7 +186,7 @@ CCMaxFreq <- function(x, y, t, n) {
   return(z)
 }
 
-CCMaxFreq(x=ccex, y=ccex.s, t=1, n=1) # gives an error if t>1
+CCMaxFreq(x=ccex, y=ccex.s, t=2, n=3) # gives an error if t>1
 
 # minimum frequency
 CCMinFreq <- function(x,y) {
