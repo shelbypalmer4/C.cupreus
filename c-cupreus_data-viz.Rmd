@@ -70,6 +70,11 @@ dev.off()
 
 
 ```
+### A figure displaying an African Emerald Cuckoo song with each measurement displayed
+```{r}
+ccex <- readWave("")
+
+```
 
 ### Testing threshold-based frequency measurements
 ```{r}
