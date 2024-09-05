@@ -124,29 +124,29 @@ CCMinFreq <- function(x,y) {
   return(z)
 }
 
-CCStdevFreq <- function(x,y) {
-  z <- c()
-  for (j in 1:length(y$s.start)) {
-    z[j] <- sd(meanspec(cutw(x,
-                              from = y$s.start[j],
-                              to = y$s.end[j],
-                              output = "Wave"), 
-                         flim=c(1, 5.1), 
-                         wl = 512,
-                         ovlp = 95,
-                         dB='max0',
-                         plot = F)[,1][meanspec(cutw(x,
-                                                     from = y$s.start[j],
-                                                     to = y$s.end[j],
-                                                     output = "Wave"), 
-                                                flim=c(1, 5.1), 
-                                                wl = 512,
-                                                ovlp = 95, 
-                                                dB='max0',
-                                                plot = F)[,2]>crit])
-  }
-  return(z)
-}
+# CCStdevFreq <- function(x,y) {
+#   z <- c()
+#   for (j in 1:length(y$s.start)) {
+#     z[j] <- sd(meanspec(cutw(x,
+#                               from = y$s.start[j],
+#                               to = y$s.end[j],
+#                               output = "Wave"), 
+#                          flim=c(1, 5.1), 
+#                          wl = 512,
+#                          ovlp = 95,
+#                          dB='max0',
+#                          plot = F)[,1][meanspec(cutw(x,
+#                                                      from = y$s.start[j],
+#                                                      to = y$s.end[j],
+#                                                      output = "Wave"), 
+#                                                 flim=c(1, 5.1), 
+#                                                 wl = 512,
+#                                                 ovlp = 95, 
+#                                                 dB='max0',
+#                                                 plot = F)[,2]>crit])
+#   }
+#   return(z)
+# }
 
 
 ## Dominant frequency measurements
