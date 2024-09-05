@@ -70,11 +70,6 @@ dev.off()
 
 
 ```
-### A figure displaying an African Emerald Cuckoo song with each measurement displayed
-```{r}
-ccex <- readWave("")
-
-```
 
 ### Testing threshold-based frequency measurements
 ```{r}
@@ -156,62 +151,57 @@ minfreq
 
 ```
 
-## Functions to automate acoustic measurements at the note level  
+### Functions to automate acoustic measurements at the note level  
+`x` is a wave file  
+`y` is a `timer()` object  
+`t` is the total number of element divisions (set `t = 1` for whole-element measurements)  
+`n` is the element division # for which this measurement is desired
 ```{r}
-crit = -18 # chosen critical value
+crit = -20 # chosen critical value
 # maximum frequency
-CCMaxFreq <- function(x,y) {
+CCMaxFreq <- function(x, y, t, n) {
   z <- c()
   for (j in 1:length(y$s.start)) {
-    z[j] <- max(meanspec(cutw(x,
-                              from = y$s.start[j],
-                              to = y$s.end[j],
-                              output = "Wave"), 
+    z[j] <- max(meanspec(x,
+                         from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                         to = y$s.start[j]+(y$s[j]*(n/t)), 
                          flim=c(1, 6), 
                          wl = 1024,
                          ovlp = 95,
                          dB='max0',
-                         plot = F)[,1][meanspec(cutw(x,
-                                                      from = y$s.start[j],
-                                                      to = y$s.end[j],
-                                                      output = "Wave"), 
-                                                 flim=c(1, 6), 
-                                                 wl = 1024,
-                                                 ovlp = 95, 
-                                                 dB='max0',
-                                                 plot = F)[,2]>crit])
+                         plot = F)[,1][meanspec(x,
+                                                from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                                                to = y$s.start[j]+(y$s[j]*(n/t)), 
+                                                flim=c(1, 6), 
+                                                wl = 1024,
+                                                ovlp = 95, 
+                                                dB='max0',
+                                                plot = F)[,2]>crit])
   }
   return(z)
 }
 
-# compare with spectrograms
-CCMaxFreq(x = cleancc, y = cleannotes)
-CCMaxFreq(x = noisycc, y = noisynotes)
-
-spectro(cleancc, flim = c(0,6), tlim = c(0,2), wl = 1024, ovlp = 95)
-spectro(noisycc, flim = c(0,6), tlim = c(0,2), wl = 1024, ovlp = 95)
+CCMaxFreq(x=ccex, y=ccex.s, t=1, n=1) # gives an error if t>1
 
 # minimum frequency
 CCMinFreq <- function(x,y) {
   z <- c()
   for (j in 1:length(y$s.start)) {
-    z[j] <- min(meanspec(cutw(x,
-                              from = y$s.start[j],
-                              to = y$s.end[j],
-                              output = "Wave"), 
+    z[j] <- min(meanspec(x,
+                         from = y$s.start[j],
+                         to = y$s.end[j], 
                          flim=c(1, 6), 
                          wl = 1024,
                          ovlp = 95,
                          dB='max0',
-                         plot = F)[,1][meanspec(cutw(x,
-                                                      from = y$s.start[j],
-                                                      to = y$s.end[j],
-                                                      output = "Wave"), 
-                                                 flim=c(1, 6), 
-                                                 wl = 1024,
-                                                 ovlp = 95, 
-                                                 dB='max0',
-                                                 plot = F)[,2]>crit])
+                         plot = F)[,1][meanspec(x,
+                                                from = y$s.start[j],
+                                                to = y$s.end[j], 
+                                                flim=c(1, 6), 
+                                                wl = 1024,
+                                                ovlp = 95, 
+                                                dB='max0',
+                                                plot = F)[,2]>crit])
   }
   return(z)
 }
@@ -220,40 +210,90 @@ CCMinFreq <- function(x,y) {
 CCPeakFreq <- function(x,y) {
   z <- c()
   for (j in 1:length(y$s.start)) {
-    z[j] <- meanspec(cutw(x,
-                          from = y$s.start[j],
-                          to = y$s.end[j],
-                          output = "Wave"), 
+    z[j] <- meanspec(x,
+                     from = y$s.start[j],
+                     to = y$s.end[j], 
                      flim=c(1, 6), 
-                     wl = 1024, 
-                     dB='max0')[,1][match(c(0),
-                                          meanspec(cutw(x,
+                     wl = 1024,
+                     ovlp = 95,
+                     dB='max0',
+                     plot = F)[,1][match(c(0),
+                                          meanspec(x,
                                           from = y$s.start[j],
-                                          to = y$s.end[j],
-                                          output = "Wave"), 
+                                          to = y$s.end[j], 
                                      flim=c(1, 6), 
-                                     wl = 1024, 
-                                     dB='max0')[,2])]
+                                     wl = 1024,
+                                     ovlp = 95,
+                                     dB='max0',
+                                     plot = F)[,2])]
   }
   return(z)
 }
 
-# Maximum dominant frequency
-maxdfreq <- function(x,y) {
+# Maximum dominant frequency slope
+CCDomFreqMaxSlope <- function(x,y) {
   z <- c()
   for (j in 1:length(y$s.start)) {
-    z[j] <- max(dfreq(sound,
-                         tlim = c(signal$s.start[j],
-                                  signal$s.end[j]),
-                         wl = 1024,
-                         ovlp = 95,
-                         plot = F)[,2])
+    z[j] <- max(diff(dfreq(x,
+                          tlim = c(y$s.start[j], y$s.end[j]),
+                          ovlp = 95,
+                          wl = 1024,
+                          threshold = 5,
+                          plot = F)[,2]))
   }
   return(z)
 }
+
+
+# Minimum dominant frequency slope
+CCDomFreqMinSlope <- function(x,y) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- min(diff(dfreq(x,
+                          tlim = c(y$s.start[j], y$s.end[j]),
+                          ovlp = 95,
+                          wl = 1024,
+                          threshold = 5,
+                          plot = F)[,2]))
+  }
+  return(z)
+}
+
+```
+
+## A figure displaying an African Emerald Cuckoo song with each frequency measurement displayed  
+```{r}
+ccex <- readWave(paste(getwd(),
+                       "/filter_resamp/filtered_23167_26.00.wav",
+                       sep = ""))
+ccex.s <- timer(ccex, threshold = 12, msmooth = c(512, 95), dmin = 0.01)
+
+crit <- -20
+spectro(ccex, 
+        scale = F, grid = F, 
+        flim = c(0,5), tlim = c(0.4, 1.8),
+        collevels = seq(-30, 0, by = 0.1),
+        ovlp = 95);
+for (i in 1:length(ccex.s)) {
+  segments(y0 = CCMaxFreq(x = ccex, y = ccex.s)[i],
+        y = CCMaxFreq(x = ccex, y = ccex.s)[i],
+        x0 = ccex.s$s.start[i], 
+        x = ccex.s$s.end[i]
+        )
+  segments(y0 = CCMinFreq(x = ccex, y = ccex.s)[i],
+        y = CCMinFreq(x = ccex, y = ccex.s)[i],
+        x0 = ccex.s$s.start[i], 
+        x = ccex.s$s.end[i]
+        )
+  segments(y0 = CCPeakFreq(x = ccex, y = ccex.s)[i],
+        y = CCPeakFreq(x = ccex, y = ccex.s)[i],
+        x0 = ccex.s$s.start[i], 
+        x = ccex.s$s.end[i]
+        )
+}
+
 
 
 
 
 ```
-
