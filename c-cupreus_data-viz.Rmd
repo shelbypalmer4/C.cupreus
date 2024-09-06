@@ -159,52 +159,62 @@ minfreq
 ```{r}
 # get an example recording
 ccex <- readWave(paste(getwd(),
-                       "/filter_resamp/filtered_23167_26.00.wav",
+                       "/filter_resamp/filtered_Chrysococcyx-cupreus-780410_1.29.wav",
                        sep = ""))
-ccex.s <- timer(ccex, threshold = 12, msmooth = c(512, 95), dmin = 0.01)
+ccex.s <- timer(ccex, threshold = 12, msmooth = c(256, 95), dmin = 0.01)
+ccex.1 <- cutw(ccex, from = ccex.s$s.start[1], to = ccex.s$s.start[1]+(0.25*ccex.s$s[1]),
+               output = "Wave")
+duration(ccex.1)
+meanspec(ccex.1,
+         flim=c(1, 10), 
+         wl = 512,
+         ovlp = 75,
+         dB='max0',
+         plot = F)
+
 crit = -20 # chosen critical value
 # maximum frequency
 CCMaxFreq <- function(x, y, t, n) {
   z <- c()
-  for (j in 2:length(y$s.start)) {
+  for (j in 1:length(y$s.start)) {
     z[j] <- max(meanspec(x,
                          from = y$s.start[j]+(y$s[j]*((n-1)/t)),
                          to = y$s.start[j]+(y$s[j]*(n/t)), 
                          flim=c(1, 6), 
-                         wl = 1024,
-                         ovlp = 95,
+                         wl = 512,
+                         ovlp = 75,
                          dB='max0',
                          plot = F)[,1][meanspec(x,
                                                 from = y$s.start[j]+(y$s[j]*((n-1)/t)),
                                                 to = y$s.start[j]+(y$s[j]*(n/t)), 
                                                 flim=c(1, 6), 
-                                                wl = 1024,
-                                                ovlp = 95, 
+                                                wl = 512,
+                                                ovlp = 75, 
                                                 dB='max0',
                                                 plot = F)[,2]>crit])
   }
   return(z)
 }
 
-CCMaxFreq(x=ccex, y=ccex.s, t=2, n=3) # gives an error if t>1
+CCMaxFreq(x=ccex, y=ccex.s, t=4, n=1)
 
 # minimum frequency
-CCMinFreq <- function(x,y) {
+CCMinFreq <- function(x,y,n,t) {
   z <- c()
   for (j in 1:length(y$s.start)) {
     z[j] <- min(meanspec(x,
-                         from = y$s.start[j],
-                         to = y$s.end[j], 
+                         from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                         to = y$s.start[j]+(y$s[j]*(n/t)), 
                          flim=c(1, 6), 
-                         wl = 1024,
-                         ovlp = 95,
+                         wl = 512,
+                         ovlp = 75,
                          dB='max0',
                          plot = F)[,1][meanspec(x,
-                                                from = y$s.start[j],
-                                                to = y$s.end[j], 
+                                                from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                                                to = y$s.start[j]+(y$s[j]*(n/t)), 
                                                 flim=c(1, 6), 
-                                                wl = 1024,
-                                                ovlp = 95, 
+                                                wl = 512,
+                                                ovlp = 75, 
                                                 dB='max0',
                                                 plot = F)[,2]>crit])
   }
@@ -216,19 +226,19 @@ CCPeakFreq <- function(x,y) {
   z <- c()
   for (j in 1:length(y$s.start)) {
     z[j] <- meanspec(x,
-                     from = y$s.start[j],
-                     to = y$s.end[j], 
+                     from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                     to = y$s.start[j]+(y$s[j]*(n/t)), 
                      flim=c(1, 6), 
-                     wl = 1024,
-                     ovlp = 95,
+                     wl = 512,
+                     ovlp = 75,
                      dB='max0',
                      plot = F)[,1][match(c(0),
                                           meanspec(x,
-                                          from = y$s.start[j],
-                                          to = y$s.end[j], 
+                                          from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                                          to = y$s.start[j]+(y$s[j]*(n/t)), 
                                      flim=c(1, 6), 
-                                     wl = 1024,
-                                     ovlp = 95,
+                                     wl = 512,
+                                     ovlp = 75,
                                      dB='max0',
                                      plot = F)[,2])]
   }
@@ -241,8 +251,8 @@ CCDomFreqMaxSlope <- function(x,y) {
   for (j in 1:length(y$s.start)) {
     z[j] <- max(diff(dfreq(x,
                           tlim = c(y$s.start[j], y$s.end[j]),
-                          ovlp = 95,
-                          wl = 1024,
+                          ovlp = 75,
+                          wl = 512,
                           threshold = 5,
                           plot = F)[,2]))
   }
