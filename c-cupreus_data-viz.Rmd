@@ -320,10 +320,41 @@ sampratesdf <- data.frame(file = list.files(originalwd),
                           samprates = rep(NA))
 
 for (i in 1:length(list.files(originalwd))) {
-  a <- readMP3(paste(originalwd, list.files(originalwd)[i], sep = ""))
+  a <- readWave(paste(originalwd, list.files(originalwd)[i], sep = ""))
   sampratesdf$samprates[i] <- a@samp.rate
 }
+#
+table(sampratesdf$samprates)
 
-View(sampratesdf)
+sampratesdf[which(sampratesdf$samprates<40000),]
 
 ```
+  
+### 20 September 2024: Filter and resample again  
+To fix the issue of frequency spectrum calculation limitation by sampling frequency, we will double the standard sampling rate (to 44100 Hz)  
+```{r}
+library(dplyr)
+# loop through `chopped_recordings`, deposit new files in `filter_resamp_44100`
+for (i in 1:length(list.files(originalwd))) {
+
+  a <- readWave(
+        paste(originalwd, 
+              list.files(originalwd)[i],
+              sep = "")
+      ) %>%
+    fir(., from = 1000, to = 5100, output = "Wave") %>%
+    normalize(., unit = "16")
+  
+  if (a@samp.rate!=44100) {
+      a <- resamp(a, g = 44100, output = "Wave")
+  }
+  
+  writeWave(a, filename = paste(getwd(), "/filter_resamp_44100/",
+                                list.files(originalwd)[i],
+                                sep = ""))
+  
+}
+
+
+```
+
