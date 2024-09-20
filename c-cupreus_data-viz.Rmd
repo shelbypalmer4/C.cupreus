@@ -167,8 +167,8 @@ ccex.1 <- cutw(ccex, from = ccex.s$s.start[1], to = ccex.s$s.start[1]+(0.25*ccex
 duration(ccex.1)
 meanspec(ccex.1,
          flim=c(1, 10), 
-         wl = 512,
-         ovlp = 75,
+         wl = 540,
+         ovlp = 95,
          dB='max0',
          plot = F)
 
@@ -182,7 +182,7 @@ CCMaxFreq <- function(x, y, t, n) {
                          to = y$s.start[j]+(y$s[j]*(n/t)), 
                          flim=c(1, 6), 
                          wl = 512,
-                         ovlp = 75,
+                         ovlp = 95,
                          dB='max0',
                          plot = F)[,1][meanspec(x,
                                                 from = y$s.start[j]+(y$s[j]*((n-1)/t)),
@@ -207,7 +207,7 @@ CCMinFreq <- function(x,y,n,t) {
                          to = y$s.start[j]+(y$s[j]*(n/t)), 
                          flim=c(1, 6), 
                          wl = 512,
-                         ovlp = 75,
+                         ovlp = 95,
                          dB='max0',
                          plot = F)[,1][meanspec(x,
                                                 from = y$s.start[j]+(y$s[j]*((n-1)/t)),
@@ -222,7 +222,7 @@ CCMinFreq <- function(x,y,n,t) {
 }
 
 # peak frequency
-CCPeakFreq <- function(x,y) {
+CCPeakFreq <- function(x,y,n,t) {
   z <- c()
   for (j in 1:length(y$s.start)) {
     z[j] <- meanspec(x,
@@ -230,7 +230,7 @@ CCPeakFreq <- function(x,y) {
                      to = y$s.start[j]+(y$s[j]*(n/t)), 
                      flim=c(1, 6), 
                      wl = 512,
-                     ovlp = 75,
+                     ovlp = 95,
                      dB='max0',
                      plot = F)[,1][match(c(0),
                                           meanspec(x,
@@ -238,7 +238,7 @@ CCPeakFreq <- function(x,y) {
                                           to = y$s.start[j]+(y$s[j]*(n/t)), 
                                      flim=c(1, 6), 
                                      wl = 512,
-                                     ovlp = 75,
+                                     ovlp = 95,
                                      dB='max0',
                                      plot = F)[,2])]
   }
@@ -278,37 +278,52 @@ CCDomFreqMinSlope <- function(x,y) {
 
 ## A figure displaying an African Emerald Cuckoo song with each frequency measurement displayed  
 ```{r}
-ccex <- readWave(paste(getwd(),
-                       "/filter_resamp/filtered_23167_26.00.wav",
-                       sep = ""))
-ccex.s <- timer(ccex, threshold = 12, msmooth = c(512, 95), dmin = 0.01)
+# ccex <- readWave(paste(getwd(),
+#                        "/filter_resamp/filtered_23167_26.00.wav",
+#                        sep = ""))
+# ccex.s <- timer(ccex, threshold = 12, msmooth = c(512, 95), dmin = 0.01)
 
 crit <- -20
 spectro(ccex, 
         scale = F, grid = F, 
-        flim = c(0,5), tlim = c(0.4, 1.8),
+        flim = c(0,5),
         collevels = seq(-30, 0, by = 0.1),
         ovlp = 95);
 for (i in 1:length(ccex.s)) {
-  segments(y0 = CCMaxFreq(x = ccex, y = ccex.s)[i],
-        y = CCMaxFreq(x = ccex, y = ccex.s)[i],
-        x0 = ccex.s$s.start[i], 
-        x = ccex.s$s.end[i]
+  for (j in 1:4) {
+      segments(y0 = CCMaxFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        y = CCMaxFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        x0 = ccex.s$s.start[j]+(y$s[j]*((n-1)/t)), 
+        x = ccex.s$s.start[j]+(y$s[j]*(n/t))
         )
-  segments(y0 = CCMinFreq(x = ccex, y = ccex.s)[i],
-        y = CCMinFreq(x = ccex, y = ccex.s)[i],
-        x0 = ccex.s$s.start[i], 
-        x = ccex.s$s.end[i]
+      segments(y0 = CCMinFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        y = CCMinFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        x0 = ccex.s$s.start[j]+(y$s[j]*((n-1)/t)), 
+        x = ccex.s$s.start[j]+(y$s[j]*(n/t))
         )
-  segments(y0 = CCPeakFreq(x = ccex, y = ccex.s)[i],
-        y = CCPeakFreq(x = ccex, y = ccex.s)[i],
-        x0 = ccex.s$s.start[i], 
-        x = ccex.s$s.end[i]
+      segments(y0 = CCPeakFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        y = CCPeakFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        x0 = ccex.s$s.start[j]+(y$s[j]*((n-1)/t)), 
+        x = ccex.s$s.start[j]+(y$s[j]*(n/t))
         )
+  }
+
 }
 
+library(tuneR)
+a <- readWave(paste(getwd(), "/chopped_recordings/8596_23.94.wav", sep = ""))
 
+a@samp.rate
 
+originalwd <- paste(getwd(), "/chopped_recordings/", sep = "")
+sampratesdf <- data.frame(file = list.files(originalwd),
+                          samprates = rep(NA))
 
+for (i in 1:length(list.files(originalwd))) {
+  a <- readMP3(paste(originalwd, list.files(originalwd)[i], sep = ""))
+  sampratesdf$samprates[i] <- a@samp.rate
+}
+
+View(sampratesdf)
 
 ```
