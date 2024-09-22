@@ -1,0 +1,360 @@
+---
+title: "Chrysococcyx cupreus"
+author: "Shelby M Palmer"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### We first want to visualize where all recordings are coming from  
+Read in XC and ML metadata containing lat/long  
+Map points onto a projection of Africa  
+```{r}
+library(dplyr)
+setwd("C:/Users/spalm/Desktop/C.cupreus")
+xcmeta.cc <- read.csv("XC_metadata.csv")
+mlmeta.cc <- read.csv("ML_metadata.csv")
+usable.cc <- read.csv("usable_recordings.csv")
+
+# rename ID column for ML recordings
+colnames(mlmeta.cc)[which(colnames(mlmeta.cc)=="ML.Catalog.Number")] <- "Recording_ID"
+
+# get a dataframe with lat/long and recording ID
+latlong.cc <- rbind(xcmeta.cc[,which(colnames(xcmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID"))],
+                    mlmeta.cc[,which(colnames(mlmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID"))])
+
+# subset to only high-quality recordings and remove NAs
+latlong.cc <- latlong.cc[which(latlong.cc$Recording_ID %in% usable.cc$Recording_ID),]
+latlong.cc <- latlong.cc[-which(is.na(latlong.cc$Latitude)),]
+
+### Make a map
+library(ggplot2)
+library(ggspatial)
+library(sf)
+# remotes::install_github("afrimapr/afrilearndata")
+library(afrilearndata) # shapefiles for Africa
+
+# Read in range map shapefile (downloaded from https://www.iucnredlist.org/resources/spatial-data-download)
+cc_shape <- st_read(dsn = "./redlist_species_data_c-cupreus", layer = "data_0")
+
+# Make the map
+png("cc_map_range.png",
+    width = 7,
+    height = 7,
+    units = "in",
+    res = 600)
+ggplot() +
+  geom_sf(data = st_geometry(africountries)) +
+  geom_sf(data = st_transform(cc_shape)[1,],
+          color = "goldenrod3",
+          fill = "goldenrod3",
+          alpha = 0.5) +
+  geom_sf(data = st_transform(cc_shape)[2,],
+          color = "indianred",
+          fill = "indianred",
+          alpha = 0.5) +
+  geom_point(data = latlong.cc, 
+             aes(x = Longitude, 
+                 y = Latitude),
+             size = 1.5,
+             color = "black",
+             alpha = 0.5,
+             shape = 19) +
+  coord_sf(xlim = c(-20, 52),
+           ylim = c(-35, 20)) +
+  theme_bw()
+dev.off()
+
+
+```
+
+### Testing threshold-based frequency measurements
+```{r}
+library(seewave)
+library(tuneR)
+library(dplyr)
+cleancc <- readWave(paste(getwd(), 
+                          "/practice_recordings/8596_23.94.wav", 
+                          sep = "")) %>%
+  fir(., from = 1000, to = 6000, bandpass = T, output = "Wave")
+noisycc <- readWave(paste(getwd(), 
+                          "/practice_recordings/8597_41.28.wav", 
+                          sep = "")) %>%
+  fir(., from = 1000, to = 6000, bandpass = T, output = "Wave")
+## Clean
+# timer objects
+cleannotes <- timer(cleancc, dmin = 0.05, threshold = 12, msmooth = c(512, 90))
+cleancc_1 <- cutw(cleancc, from = cleannotes$s.start[1], to = cleannotes$s.end[1], output = "Wave")
+# compute and visualize frequency spectrum
+spec(cleancc_1, flim = c(0, 5), alim = c(-40, 0), wl = 1024, ovlp = 95, dB = "max0")
+abline(h = -15, lty = 2)
+spectro(cleancc, flim = c(0,6), tlim = c(0,2), wl = 1024, ovlp = 95)
+# get min and max values
+crit <- -15 # WARNING: arbitrary value
+maxfreq <- max(meanspec(cleancc_1, 
+                        flim=c(0,6), 
+                        wl = 1024, 
+                        dB = "max0",
+                        plot=F)[,1][meanspec(cleancc_1, 
+                                                flim=c(0,6), 
+                                                wl = 1024, 
+                                                dB="max0",
+                                             plot=F)[,2]>crit])
+maxfreq
+
+minfreq <- min(spec(cleancc_1, 
+                        flim=c(0,6), 
+                        wl = 1024, 
+                        dB = "max0",
+                        plot=F)[,1][spec(cleancc_1, 
+                                                flim=c(0,6), 
+                                                wl = 1024, 
+                                                dB="max0",
+                                             plot=F)[,2]>crit])
+minfreq
+
+## Noisy
+# timer objects
+noisynotes <- timer(noisycc, dmin = 0.05, threshold = 12, msmooth = c(512, 90))
+noisycc_1 <- cutw(noisycc, from = noisynotes$s.start[1], to = noisynotes$s.end[1], output = "Wave")
+# compute and visualize frequency spectrum
+spec(noisycc_1, flim = c(0, 5), alim = c(-40, 0), wl = 1024, ovlp = 95, dB = "max0")
+abline(h = -15, lty = 2)
+spectro(noisycc, flim = c(0,6), tlim = c(0,2), wl = 1024, ovlp = 95)
+# get min and max
+maxfreq <- max(meanspec(noisycc_1, 
+                        flim=c(0,6), 
+                        wl = 1024, 
+                        dB = "max0",
+                        plot=F)[,1][meanspec(noisycc_1, 
+                                                flim=c(0,6), 
+                                                wl = 1024, 
+                                                dB="max0",
+                                             plot=F)[,2]>crit])
+maxfreq
+
+minfreq <- min(meanspec(noisycc_1, 
+                        flim=c(0,6), 
+                        wl = 1024, 
+                        dB = "max0",
+                        plot=F)[,1][spec(noisycc_1, 
+                                                flim=c(0,6), 
+                                                wl = 1024, 
+                                                dB="max0",
+                                             plot=F)[,2]>crit])
+minfreq
+
+## Try putting it in a function
+
+```
+
+### Functions to automate acoustic measurements at the note level  
+`x` is a wave file  
+`y` is a `timer()` object  
+`t` is the total number of element divisions (set `t = 1` for whole-element measurements)  
+`n` is the element division # for which this measurement is desired
+```{r}
+# get an example recording
+ccex <- readWave(paste(getwd(),
+                       "/filter_resamp/filtered_Chrysococcyx-cupreus-780410_1.29.wav",
+                       sep = ""))
+ccex.s <- timer(ccex, threshold = 12, msmooth = c(256, 95), dmin = 0.01)
+ccex.1 <- cutw(ccex, from = ccex.s$s.start[1], to = ccex.s$s.start[1]+(0.25*ccex.s$s[1]),
+               output = "Wave")
+duration(ccex.1)
+meanspec(ccex.1,
+         flim=c(1, 10), 
+         wl = 540,
+         ovlp = 95,
+         dB='max0',
+         plot = F)
+
+crit = -20 # chosen critical value
+# maximum frequency
+CCMaxFreq <- function(x, y, t, n) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- max(meanspec(x,
+                         from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                         to = y$s.start[j]+(y$s[j]*(n/t)), 
+                         flim=c(1, 6), 
+                         wl = 512,
+                         ovlp = 95,
+                         dB='max0',
+                         plot = F)[,1][meanspec(x,
+                                                from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                                                to = y$s.start[j]+(y$s[j]*(n/t)), 
+                                                flim=c(1, 6), 
+                                                wl = 512,
+                                                ovlp = 75, 
+                                                dB='max0',
+                                                plot = F)[,2]>crit])
+  }
+  return(z)
+}
+
+CCMaxFreq(x=ccex, y=ccex.s, t=4, n=1)
+
+# minimum frequency
+CCMinFreq <- function(x,y,n,t) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- min(meanspec(x,
+                         from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                         to = y$s.start[j]+(y$s[j]*(n/t)), 
+                         flim=c(1, 6), 
+                         wl = 512,
+                         ovlp = 95,
+                         dB='max0',
+                         plot = F)[,1][meanspec(x,
+                                                from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                                                to = y$s.start[j]+(y$s[j]*(n/t)), 
+                                                flim=c(1, 6), 
+                                                wl = 512,
+                                                ovlp = 75, 
+                                                dB='max0',
+                                                plot = F)[,2]>crit])
+  }
+  return(z)
+}
+
+# peak frequency
+CCPeakFreq <- function(x,y,n,t) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- meanspec(x,
+                     from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                     to = y$s.start[j]+(y$s[j]*(n/t)), 
+                     flim=c(1, 6), 
+                     wl = 512,
+                     ovlp = 95,
+                     dB='max0',
+                     plot = F)[,1][match(c(0),
+                                          meanspec(x,
+                                          from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                                          to = y$s.start[j]+(y$s[j]*(n/t)), 
+                                     flim=c(1, 6), 
+                                     wl = 512,
+                                     ovlp = 95,
+                                     dB='max0',
+                                     plot = F)[,2])]
+  }
+  return(z)
+}
+
+# Maximum dominant frequency slope
+CCDomFreqMaxSlope <- function(x,y) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- max(diff(dfreq(x,
+                          tlim = c(y$s.start[j], y$s.end[j]),
+                          ovlp = 75,
+                          wl = 512,
+                          threshold = 5,
+                          plot = F)[,2]))
+  }
+  return(z)
+}
+
+
+# Minimum dominant frequency slope
+CCDomFreqMinSlope <- function(x,y) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- min(diff(dfreq(x,
+                          tlim = c(y$s.start[j], y$s.end[j]),
+                          ovlp = 95,
+                          wl = 1024,
+                          threshold = 5,
+                          plot = F)[,2]))
+  }
+  return(z)
+}
+
+```
+
+## A figure displaying an African Emerald Cuckoo song with each frequency measurement displayed  
+```{r}
+# ccex <- readWave(paste(getwd(),
+#                        "/filter_resamp/filtered_23167_26.00.wav",
+#                        sep = ""))
+# ccex.s <- timer(ccex, threshold = 12, msmooth = c(512, 95), dmin = 0.01)
+
+crit <- -20
+spectro(ccex, 
+        scale = F, grid = F, 
+        flim = c(0,5),
+        collevels = seq(-30, 0, by = 0.1),
+        ovlp = 95);
+for (i in 1:length(ccex.s)) {
+  for (j in 1:4) {
+      segments(y0 = CCMaxFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        y = CCMaxFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        x0 = ccex.s$s.start[j]+(y$s[j]*((n-1)/t)), 
+        x = ccex.s$s.start[j]+(y$s[j]*(n/t))
+        )
+      segments(y0 = CCMinFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        y = CCMinFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        x0 = ccex.s$s.start[j]+(y$s[j]*((n-1)/t)), 
+        x = ccex.s$s.start[j]+(y$s[j]*(n/t))
+        )
+      segments(y0 = CCPeakFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        y = CCPeakFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        x0 = ccex.s$s.start[j]+(y$s[j]*((n-1)/t)), 
+        x = ccex.s$s.start[j]+(y$s[j]*(n/t))
+        )
+  }
+
+}
+
+library(tuneR)
+a <- readWave(paste(getwd(), "/chopped_recordings/8596_23.94.wav", sep = ""))
+
+a@samp.rate
+
+originalwd <- paste(getwd(), "/chopped_recordings/", sep = "")
+sampratesdf <- data.frame(file = list.files(originalwd),
+                          samprates = rep(NA))
+
+for (i in 1:length(list.files(originalwd))) {
+  a <- readWave(paste(originalwd, list.files(originalwd)[i], sep = ""))
+  sampratesdf$samprates[i] <- a@samp.rate
+}
+#
+table(sampratesdf$samprates)
+
+sampratesdf[which(sampratesdf$samprates<40000),]
+
+```
+  
+### 20 September 2024: Filter and resample again  
+To fix the issue of frequency spectrum calculation limitation by sampling frequency, we will double the standard sampling rate (to 44100 Hz)  
+```{r}
+library(dplyr)
+# loop through `chopped_recordings`, deposit new files in `filter_resamp_44100`
+for (i in 1:length(list.files(originalwd))) {
+
+  a <- readWave(
+        paste(originalwd, 
+              list.files(originalwd)[i],
+              sep = "")
+      ) %>%
+    fir(., from = 1000, to = 5100, output = "Wave") %>%
+    normalize(., unit = "16")
+  
+  if (a@samp.rate!=44100) {
+      a <- resamp(a, g = 44100, output = "Wave")
+  }
+  
+  writeWave(a, filename = paste(getwd(), "/filter_resamp_44100/",
+                                list.files(originalwd)[i],
+                                sep = ""))
+  
+}
+
+
+```
+
