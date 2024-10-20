@@ -158,11 +158,14 @@ minfreq
 `n` is the element division # for which this measurement is desired
 ```{r}
 # get an example recording
+library(tuneR)
+library(seewave)
 ccex <- readWave(paste(getwd(),
-                       "/filter_resamp/filtered_Chrysococcyx-cupreus-780410_1.29.wav",
+                       "/sims_test/Chrysococcyx-cupreus-615909_0.04.wav",
                        sep = ""))
 ccex.s <- timer(ccex, threshold = 12, msmooth = c(256, 95), dmin = 0.01)
-ccex.1 <- cutw(ccex, from = ccex.s$s.start[1], to = ccex.s$s.start[1]+(0.25*ccex.s$s[1]),
+duration(ccex)
+ccex.1 <- cutw(ccex, from = ccex.s$s.start[1], to = ccex.s$s.start[1]+((1/4)*ccex.s$s[1]),
                output = "Wave")
 duration(ccex.1)
 meanspec(ccex.1,
@@ -189,14 +192,13 @@ CCMaxFreq <- function(x, y, t, n) {
                                                 to = y$s.start[j]+(y$s[j]*(n/t)), 
                                                 flim=c(1, 6), 
                                                 wl = 512,
-                                                ovlp = 75, 
+                                                ovlp = 95, 
                                                 dB='max0',
                                                 plot = F)[,2]>crit])
   }
   return(z)
 }
 
-CCMaxFreq(x=ccex, y=ccex.s, t=4, n=1)
 
 # minimum frequency
 CCMinFreq <- function(x,y,n,t) {
@@ -214,7 +216,7 @@ CCMinFreq <- function(x,y,n,t) {
                                                 to = y$s.start[j]+(y$s[j]*(n/t)), 
                                                 flim=c(1, 6), 
                                                 wl = 512,
-                                                ovlp = 75, 
+                                                ovlp = 95, 
                                                 dB='max0',
                                                 plot = F)[,2]>crit])
   }
@@ -246,12 +248,13 @@ CCPeakFreq <- function(x,y,n,t) {
 }
 
 # Maximum dominant frequency slope
-CCDomFreqMaxSlope <- function(x,y) {
+CCDomFreqMaxSlope <- function(x,y,n,t) {
   z <- c()
   for (j in 1:length(y$s.start)) {
     z[j] <- max(diff(dfreq(x,
-                          tlim = c(y$s.start[j], y$s.end[j]),
-                          ovlp = 75,
+                          tlim = c(y$s.start[j]+(y$s[j]*((n-1)/t)), 
+                                   y$s.start[j]+(y$s[j]*(n/t))),
+                          ovlp = 95,
                           wl = 512,
                           threshold = 5,
                           plot = F)[,2]))
@@ -259,22 +262,273 @@ CCDomFreqMaxSlope <- function(x,y) {
   return(z)
 }
 
+CCDomFreqMaxSlope(ccex, ccex.s, n=1, t=4)
+
 
 # Minimum dominant frequency slope
-CCDomFreqMinSlope <- function(x,y) {
+CCDomFreqMinSlope <- function(x,y,n,t) {
   z <- c()
   for (j in 1:length(y$s.start)) {
     z[j] <- min(diff(dfreq(x,
-                          tlim = c(y$s.start[j], y$s.end[j]),
+                          tlim = c(y$s.start[j]+(y$s[j]*((n-1)/t)), 
+                                   y$s.start[j]+(y$s[j]*(n/t))),
                           ovlp = 95,
-                          wl = 1024,
+                          wl = 512,
                           threshold = 5,
                           plot = F)[,2]))
   }
   return(z)
 }
 
+CCEntropy <- function(x,y) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- sh(
+      meanspec(x,
+               from = y$s.start[j],
+               to = y$s.end[j], 
+               flim=c(1, 6), 
+               wl = 512,
+               ovlp = 95,
+               plot = F
+      )
+    )
+  }
+  return(z)
+}
+
+CCEntropy(x = ccex, y = ccex.s)
+
+diff(dfreq(ccex,
+                          tlim = c(ccex.s$s.start[4]+(ccex.s$s[4]*((4-1)/4)), 
+                                   ccex.s$s.start[4]+(ccex.s$s[4]*(4/4))),
+                          ovlp = 95,
+                          wl = 512,
+                          threshold = 2,
+                          plot = F)[,2])
+
+spectro(ccex)
+
 ```
+  
+## Simulations  
+### Make a dataframe with measurements from each song in a single high-quality recording  
+```{r}
+simsdf <- read.csv("sims_df.csv")
+colnames(simsdf)
+
+simswd <- paste(getwd(),
+      "/sims_test/",
+      sep = "")
+
+for (i in 1:length(list.files(simswd))) {
+  simsdf$ID[i] <- list.files(simswd)[i]
+  a <- readWave(paste(simswd, list.files(simswd)[i], sep = ""))
+  b <- timer(a, threshold = 12, msmooth = c(256, 95), dmin = 0.01)
+  simsdf$n1_s1_pk[i] <- CCPeakFreq(a, b, n = 1, t = 4)[1]
+  simsdf$n1_s2_pk[i] <- CCPeakFreq(a, b, n = 2, t = 4)[1]
+  simsdf$n1_s3_pk[i] <- CCPeakFreq(a, b, n = 3, t = 4)[1]
+  simsdf$n1_s4_pk[i] <- CCPeakFreq(a, b, n = 4, t = 4)[1]
+  simsdf$n2_s1_pk[i] <- CCPeakFreq(a, b, n = 1, t = 4)[2]
+  simsdf$n2_s2_pk[i] <- CCPeakFreq(a, b, n = 2, t = 4)[2]
+  simsdf$n2_s3_pk[i] <- CCPeakFreq(a, b, n = 3, t = 4)[2]
+  simsdf$n2_s4_pk[i] <- CCPeakFreq(a, b, n = 4, t = 4)[2]
+  simsdf$n3_s1_pk[i] <- CCPeakFreq(a, b, n = 1, t = 4)[3]
+  simsdf$n3_s2_pk[i] <- CCPeakFreq(a, b, n = 2, t = 4)[3]
+  simsdf$n3_s3_pk[i] <- CCPeakFreq(a, b, n = 3, t = 4)[3]
+  simsdf$n3_s4_pk[i] <- CCPeakFreq(a, b, n = 4, t = 4)[3]
+  simsdf$n4_s1_pk[i] <- CCPeakFreq(a, b, n = 1, t = 4)[4]
+  simsdf$n4_s2_pk[i] <- CCPeakFreq(a, b, n = 2, t = 4)[4]
+  simsdf$n4_s3_pk[i] <- CCPeakFreq(a, b, n = 3, t = 4)[4]
+  simsdf$n4_s4_pk[i] <- CCPeakFreq(a, b, n = 4, t = 4)[4]
+  
+  simsdf$n1_s1_max[i] <- CCMaxFreq(a, b, n = 1, t = 4)[1]
+  simsdf$n1_s2_max[i] <- CCMaxFreq(a, b, n = 2, t = 4)[1]
+  simsdf$n1_s3_max[i] <- CCMaxFreq(a, b, n = 3, t = 4)[1]
+  simsdf$n1_s4_max[i] <- CCMaxFreq(a, b, n = 4, t = 4)[1]
+  simsdf$n2_s1_max[i] <- CCMaxFreq(a, b, n = 1, t = 4)[2]
+  simsdf$n2_s2_max[i] <- CCMaxFreq(a, b, n = 2, t = 4)[2]
+  simsdf$n2_s3_max[i] <- CCMaxFreq(a, b, n = 3, t = 4)[2]
+  simsdf$n2_s4_max[i] <- CCMaxFreq(a, b, n = 4, t = 4)[2]
+  simsdf$n3_s1_max[i] <- CCMaxFreq(a, b, n = 1, t = 4)[3]
+  simsdf$n3_s2_max[i] <- CCMaxFreq(a, b, n = 2, t = 4)[3]
+  simsdf$n3_s3_max[i] <- CCMaxFreq(a, b, n = 3, t = 4)[3]
+  simsdf$n3_s4_max[i] <- CCMaxFreq(a, b, n = 4, t = 4)[3]
+  simsdf$n4_s1_max[i] <- CCMaxFreq(a, b, n = 1, t = 4)[4]
+  simsdf$n4_s2_max[i] <- CCMaxFreq(a, b, n = 2, t = 4)[4]
+  simsdf$n4_s3_max[i] <- CCMaxFreq(a, b, n = 3, t = 4)[4]
+  simsdf$n4_s4_max[i] <- CCMaxFreq(a, b, n = 4, t = 4)[4]
+  
+  simsdf$n1_s1_min[i] <- CCMinFreq(a, b, n = 1, t = 4)[1]
+  simsdf$n1_s2_min[i] <- CCMinFreq(a, b, n = 2, t = 4)[1]
+  simsdf$n1_s3_min[i] <- CCMinFreq(a, b, n = 3, t = 4)[1]
+  simsdf$n1_s4_min[i] <- CCMinFreq(a, b, n = 4, t = 4)[1]
+  simsdf$n2_s1_min[i] <- CCMinFreq(a, b, n = 1, t = 4)[2]
+  simsdf$n2_s2_min[i] <- CCMinFreq(a, b, n = 2, t = 4)[2]
+  simsdf$n2_s3_min[i] <- CCMinFreq(a, b, n = 3, t = 4)[2]
+  simsdf$n2_s4_min[i] <- CCMinFreq(a, b, n = 4, t = 4)[2]
+  simsdf$n3_s1_min[i] <- CCMinFreq(a, b, n = 1, t = 4)[3]
+  simsdf$n3_s2_min[i] <- CCMinFreq(a, b, n = 2, t = 4)[3]
+  simsdf$n3_s3_min[i] <- CCMinFreq(a, b, n = 3, t = 4)[3]
+  simsdf$n3_s4_min[i] <- CCMinFreq(a, b, n = 4, t = 4)[3]
+  simsdf$n4_s1_min[i] <- CCMinFreq(a, b, n = 1, t = 4)[4]
+  simsdf$n4_s2_min[i] <- CCMinFreq(a, b, n = 2, t = 4)[4]
+  simsdf$n4_s3_min[i] <- CCMinFreq(a, b, n = 3, t = 4)[4]
+  simsdf$n4_s4_min[i] <- CCMinFreq(a, b, n = 4, t = 4)[4]
+  
+  simsdf$n1_s1_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 1, t = 4)[1]
+  simsdf$n1_s2_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 2, t = 4)[1]
+  simsdf$n1_s3_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 3, t = 4)[1]
+  simsdf$n1_s4_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 4, t = 4)[1]
+  simsdf$n2_s1_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 1, t = 4)[2]
+  simsdf$n2_s2_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 2, t = 4)[2]
+  simsdf$n2_s3_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 3, t = 4)[2]
+  simsdf$n2_s4_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 4, t = 4)[2]
+  simsdf$n3_s1_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 1, t = 4)[3]
+  simsdf$n3_s2_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 2, t = 4)[3]
+  simsdf$n3_s3_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 3, t = 4)[3]
+  simsdf$n3_s4_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 4, t = 4)[3]
+  simsdf$n4_s1_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 1, t = 4)[4]
+  simsdf$n4_s2_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 2, t = 4)[4]
+  simsdf$n4_s3_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 3, t = 4)[4]
+  simsdf$n4_s4_maxsl[i] <- CCDomFreqMaxSlope(a, b, n = 4, t = 4)[4]
+  
+  simsdf$n1_s1_minsl[i] <- CCDomFreqMinSlope(a, b, n = 1, t = 4)[1]
+  simsdf$n1_s2_minsl[i] <- CCDomFreqMinSlope(a, b, n = 2, t = 4)[1]
+  simsdf$n1_s3_minsl[i] <- CCDomFreqMinSlope(a, b, n = 3, t = 4)[1]
+  simsdf$n1_s4_minsl[i] <- CCDomFreqMinSlope(a, b, n = 4, t = 4)[1]
+  simsdf$n2_s1_minsl[i] <- CCDomFreqMinSlope(a, b, n = 1, t = 4)[2]
+  simsdf$n2_s2_minsl[i] <- CCDomFreqMinSlope(a, b, n = 2, t = 4)[2]
+  simsdf$n2_s3_minsl[i] <- CCDomFreqMinSlope(a, b, n = 3, t = 4)[2]
+  simsdf$n2_s4_minsl[i] <- CCDomFreqMinSlope(a, b, n = 4, t = 4)[2]
+  simsdf$n3_s1_minsl[i] <- CCDomFreqMinSlope(a, b, n = 1, t = 4)[3]
+  simsdf$n3_s2_minsl[i] <- CCDomFreqMinSlope(a, b, n = 2, t = 4)[3]
+  simsdf$n3_s3_minsl[i] <- CCDomFreqMinSlope(a, b, n = 3, t = 4)[3]
+  simsdf$n3_s4_minsl[i] <- CCDomFreqMinSlope(a, b, n = 4, t = 4)[3]
+  simsdf$n4_s1_minsl[i] <- CCDomFreqMinSlope(a, b, n = 1, t = 4)[4]
+  simsdf$n4_s2_minsl[i] <- CCDomFreqMinSlope(a, b, n = 2, t = 4)[4]
+  simsdf$n4_s3_minsl[i] <- CCDomFreqMinSlope(a, b, n = 3, t = 4)[4]
+  simsdf$n4_s4_minsl[i] <- CCDomFreqMinSlope(a, b, n = 4, t = 4)[4]
+  
+  simsdf$n1_entr[i] <- CCEntropy(a, b)[1]
+  simsdf$n2_entr[i] <- CCEntropy(a, b)[2]
+  simsdf$n3_entr[i] <- CCEntropy(a, b)[3]
+  simsdf$n4_entr[i] <- CCEntropy(a, b)[4]
+  
+  simsdf$n1_dur[i] <- b$s[1]
+  simsdf$n2_dur[i] <- b$s[2]
+  simsdf$n3_dur[i] <- b$s[3]
+  simsdf$n4_dur[i] <- b$s[4]
+}
+
+# these are measurements for each variable across the songs in a single recording. the purpose of this dataframe is to provide a basis (central tendencies and variance) for data simulation.
+write.csv(simsdf, "simsdf_full.csv", row.names = F)
+
+# Number of recordings in the dataset
+# N <- 100
+
+# probability of sampling each 
+# songs_probs <- c(0.013157895, 0.16447368, 0.16447368, 0.01316, 0.4310526,
+#            0.021381579, 0.011513158, 0.008223684, 0.009868421, 0.006578947,
+#            0.004934211, 0.006578947, 0.001644737, 0.001644737, 0.001644737,
+#            0.001644737, 0.001644737)
+# 
+# n_songs <- c(1:12,14,15,18,20,29) # number of songs recorded per bird in our dataset
+# 
+# sim_nrec <- sample(n_songs, size=100, replace=TRUE, prob=songs_probs)
+#
+#
+
+# Read in data
+read.csv("C:/Users/spalm/Desktop/C.cupreus/simsdf_full.csv")
+# unique numbers of songs produced
+n_songs <- c(1:12,14,15,18,22,29)
+# number of recordings for which the corresponding n_songs is true
+number_of_samp_size_occurrence <- c(8,9,10,7,17,12,7,6,6,4,3,3,1,1,1,1,1)
+
+# make a vector whose length = total number of recordings and whose content reflects number of songs per recording (sum of nrec = total number of songs in dataset)
+nrec <- rep(n_songs[1], number_of_samp_size_occurrence[1])
+for (i in 2:length(n_songs)) {
+  nrec <- c(nrec, 
+            rep(n_songs[i], number_of_samp_size_occurrence[i])
+            )
+}
+
+
+# Make a vector of names of individuals to be simulated
+names <- rep(paste("ind", 1, sep = "_"), 
+    length = nrec[1])
+for(i in 2:length(nrec)) {
+  names <- c(names, rep(paste("ind", i, sep = "_"), 
+                          length = nrec[i]))
+}
+
+names
+
+# We need to simulate each measurement with means based on the real measurements from `simsdf`
+i <- 1 # first individual
+j <- 2 # second column, first measurement (first column is IDs)
+rnorm(n=nrec[i], 
+      mean=rnorm(n = 1,
+                 mean=mean(simsdf[,j]), 
+                 sd=sd(simsdf[,j])), # add noise to the individual mean that's sampled
+      sd=sd(simsdf[,j])/5) # add less noise between an individual's songs
+
+# The standard deviation values taken from `simsdf` can (should?) be replaced by constants
+
+
+#####
+
+# establish a dataframe where we'll put the simulated measurements
+actualsims <- as.data.frame(
+  matrix(data = NA,
+                     nrow = sum(nrec),
+                     ncol = length(colnames(simsdf)))
+  )
+
+# give the columns names according to `simsdf`
+colnames(actualsims) <- colnames(simsdf)
+
+# add simulated individual names to the ID column
+actualsims$ID <- names
+
+
+# loop
+# sorry for using h
+# we start at 2 because the first column is just ID's
+for (h in 2:length(colnames(actualsims))) {
+  # simulate measurements of the hth column for only the first value of `nrec`
+  varh <- rnorm(n=nrec[1], 
+                mean=rnorm(n = 1,
+                          mean=mean(simsdf[,h]), 
+                          sd=sd(simsdf[,h])),
+                sd=sd(simsdf[,h])/5)
+  # fill in with the rest of the values indicated by `nrec`
+  for(i in 2:length(nrec)) {
+    varh <- c(varh, rep(
+      rnorm(n=nrec[i], 
+            mean=rnorm(n = 1,
+                      mean=mean(simsdf[,h]), 
+                      sd=sd(simsdf[,h])),
+            sd=sd(simsdf[,h])/5),
+      length = nrec[i]
+      )
+    )
+  }
+  # add the concatenated values to the hth column
+  actualsims[,h] <- varh
+}
+
+# write out a .csv file
+write.csv(actualsims, "cuckoo_data_sims.csv", row.names = F)
+
+
+
+
+
+```
+
+
 
 ## A figure displaying an African Emerald Cuckoo song with each frequency measurement displayed  
 ```{r}
@@ -282,29 +536,35 @@ CCDomFreqMinSlope <- function(x,y) {
 #                        "/filter_resamp/filtered_23167_26.00.wav",
 #                        sep = ""))
 # ccex.s <- timer(ccex, threshold = 12, msmooth = c(512, 95), dmin = 0.01)
-
+i <- 1
+j <- 1
 crit <- -20
 spectro(ccex, 
         scale = F, grid = F, 
-        flim = c(0,5),
+        flim = c(0,6),
+        tlim = c(0.4, duration(ccex)),
         collevels = seq(-30, 0, by = 0.1),
-        ovlp = 95);
-for (i in 1:length(ccex.s)) {
+        ovlp = 95,
+        palette = reverse.gray.colors.2);
+for (i in 1:length(ccex.s$s)) {
   for (j in 1:4) {
       segments(y0 = CCMaxFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
-        y = CCMaxFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
-        x0 = ccex.s$s.start[j]+(y$s[j]*((n-1)/t)), 
-        x = ccex.s$s.start[j]+(y$s[j]*(n/t))
+        y1 = CCMaxFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        x0 = ccex.s$s.start[j]+(ccex.s$s[j]*((j-1)/4)), 
+        x1 = ccex.s$s.start[j]+(ccex.s$s[j]*(j/4)),
+        col = "red"
         )
       segments(y0 = CCMinFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
-        y = CCMinFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
-        x0 = ccex.s$s.start[j]+(y$s[j]*((n-1)/t)), 
-        x = ccex.s$s.start[j]+(y$s[j]*(n/t))
+        y1 = CCMinFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        x0 = ccex.s$s.start[j]+(ccex.s$s[j]*((j-1)/4)), 
+        x1 = ccex.s$s.start[j]+(ccex.s$s[j]*(j/4)),
+        col = "green"
         )
       segments(y0 = CCPeakFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
-        y = CCPeakFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
-        x0 = ccex.s$s.start[j]+(y$s[j]*((n-1)/t)), 
-        x = ccex.s$s.start[j]+(y$s[j]*(n/t))
+        y1 = CCPeakFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        x0 = ccex.s$s.start[j]+(ccex.s$s[j]*((j-1)/4)), 
+        x1 = ccex.s$s.start[j]+(ccex.s$s[j]*(j/4)),
+        col = "blue"
         )
   }
 
