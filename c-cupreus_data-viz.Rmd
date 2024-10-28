@@ -532,13 +532,18 @@ write.csv(actualsims, "cuckoo_data_sims.csv", row.names = F)
 
 ## A figure displaying an African Emerald Cuckoo song with each frequency measurement displayed  
 ```{r}
-# ccex <- readWave(paste(getwd(),
-#                        "/filter_resamp/filtered_23167_26.00.wav",
-#                        sep = ""))
-# ccex.s <- timer(ccex, threshold = 12, msmooth = c(512, 95), dmin = 0.01)
-i <- 1
-j <- 1
+# get an example recording
+library(tuneR)
+library(seewave)
+ccex <- readWave(paste(getwd(),
+                       "/sims_test/Chrysococcyx-cupreus-615909_0.04.wav",
+                       sep = ""))
+# make timer object
+ccex.s <- timer(ccex, threshold = 12, msmooth = c(256, 95), dmin = 0.01)
+# set a critical value (dB below max amplitude)
 crit <- -20
+#
+# make spectrogram with slice frequency measurements overlaid
 spectro(ccex, 
         scale = F, grid = F, 
         flim = c(0,6),
@@ -550,25 +555,34 @@ for (i in 1:length(ccex.s$s)) {
   for (j in 1:4) {
       segments(y0 = CCMaxFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
         y1 = CCMaxFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
-        x0 = ccex.s$s.start[j]+(ccex.s$s[j]*((j-1)/4)), 
-        x1 = ccex.s$s.start[j]+(ccex.s$s[j]*(j/4)),
+        x0 = ccex.s$s.start[i]+(ccex.s$s[i]*((j-1)/4)), 
+        x1 = ccex.s$s.start[i]+(ccex.s$s[i]*(j/4)),
         col = "red"
         )
       segments(y0 = CCMinFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
         y1 = CCMinFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
-        x0 = ccex.s$s.start[j]+(ccex.s$s[j]*((j-1)/4)), 
-        x1 = ccex.s$s.start[j]+(ccex.s$s[j]*(j/4)),
+        x0 = ccex.s$s.start[i]+(ccex.s$s[i]*((j-1)/4)), 
+        x1 = ccex.s$s.start[i]+(ccex.s$s[i]*(j/4)),
         col = "green"
         )
       segments(y0 = CCPeakFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
         y1 = CCPeakFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
-        x0 = ccex.s$s.start[j]+(ccex.s$s[j]*((j-1)/4)), 
-        x1 = ccex.s$s.start[j]+(ccex.s$s[j]*(j/4)),
-        col = "blue"
+        x0 = ccex.s$s.start[i]+(ccex.s$s[i]*((j-1)/4)), 
+        x1 = ccex.s$s.start[i]+(ccex.s$s[i]*(j/4)),
+        col = "cyan"
+        )
+      segments(y0 = 1, y1 = 5,
+        x0 = ccex.s$s.start[i]+(ccex.s$s[i]*((j-1)/4)),
+        x1 = ccex.s$s.start[i]+(ccex.s$s[i]*((j-1)/4))
         )
   }
-
+  segments(y0 = 1, y1 = 5,
+           x0 = ccex.s$s.end[i],
+           x1 = ccex.s$s.end[i]
+  )
+  
 }
+
 
 library(tuneR)
 a <- readWave(paste(getwd(), "/chopped_recordings/8596_23.94.wav", sep = ""))
@@ -615,6 +629,11 @@ for (i in 1:length(list.files(originalwd))) {
   
 }
 
+
+
+```
+How will we collapse individual-level duplicates?
+```{r}
 
 ```
 

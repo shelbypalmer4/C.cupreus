@@ -82,3 +82,69 @@ for (h in 2:length(colnames(actualsims))) {
 
 # write out a .csv file
 write.csv(actualsims, "cuckoo_data_sims.csv", row.names = F)
+
+#
+#
+#
+#
+
+#### 28 October 2024: Determine number of unique lat/long combinations (this will be our proxy for individual) ####
+setwd("C:/Users/spalm/Desktop/C.cupreus")
+library(tools)
+
+xcmeta.cc <- read.csv("XC_metadata.csv")
+mlmeta.cc <- read.csv("ML_metadata.csv")
+usable.cc <- read.csv("usable_recordings.csv")
+
+# rename ID column for ML recordings
+colnames(mlmeta.cc)[which(colnames(mlmeta.cc)=="ML.Catalog.Number")] <- "Recording_ID"
+
+# get a dataframe with lat/long, recording ID, and locality
+allmeta.cc <- rbind(xcmeta.cc[,which(colnames(xcmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID", "Locality"))],
+                    mlmeta.cc[,which(colnames(mlmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID", "Locality"))])
+
+
+# this is the full file path of the cleaned dataset
+cleanedwd <- paste(getwd(), "/Clean_44_1_k", sep = "")
+
+## How to extract the ID numbers?
+# for ML recordings that were cleaned and renamed accordingly:
+strsplit(list.files(cleanedwd)[400], split = "_")[[1]][2]
+# for recordings from xeno-canto:
+strsplit(
+  strsplit(list.files(cleanedwd)[200], split = "-")[[1]][3],
+  split = "_"
+)[[1]][1]
+# for ML recordings that weren't cleaned:
+strsplit(list.files(cleanedwd)[1], split = "_")[[1]][1]
+
+
+# get a vector with the names of all the recordings in the final dataset (before filteriing for locality duplicates)
+# index with conditional statement based on the first part of the string
+
+songids <- rep(NA, length = length(list.files(cleanedwd)))
+
+for (i in 1:length(list.files(cleanedwd))) {
+  if (!(strsplit(list.files(cleanedwd)[i], split = "_")[[1]][1]%in%c("clean", "Chrysococcyx"))){
+    songids[i] <- strsplit(list.files(cleanedwd)[i], split = "_")[[1]][1]
+  }
+  if (strsplit(list.files(cleanedwd)[i], split = "_")[[1]][1]=="clean") {
+    songids[i] <- strsplit(list.files(cleanedwd)[i], split = "_")[[1]][2]
+  }
+  if (strsplit(list.files(cleanedwd)[i], split = "-")[[1]][1]=="Chrysococcyx") {
+    songids[i] <- strsplit(
+      strsplit(list.files(cleanedwd)[i], split = "-")[[1]][3],
+      split = "_"
+    )[[1]][1]
+  } 
+  
+}
+
+songids
+
+# Subset the metadata
+allmeta.cc.final <- allmeta.cc[which(allmeta.cc$Recording_ID %in% songids),]
+# Unique lat/long
+unique(allmeta.cc.final$Longitude)
+unique(allmeta.cc.final$Latitude)
+
