@@ -144,7 +144,9 @@ songids
 
 # Subset the metadata
 allmeta.cc.final <- allmeta.cc[which(allmeta.cc$Recording_ID %in% songids),]
-# Unique lat/long
+# How many unique lat/long?
 unique(allmeta.cc.final$Longitude)
 unique(allmeta.cc.final$Latitude)
 
+# the lat and long duplicates occupy the same rows and thus are true locality duplicates
+which(duplicated(allmeta.cc.final$Latitude)) == which(duplicated(allmeta.cc.final$Longitude))
