@@ -100,8 +100,8 @@ usable.cc <- read.csv("usable_recordings.csv")
 colnames(mlmeta.cc)[which(colnames(mlmeta.cc)=="ML.Catalog.Number")] <- "Recording_ID"
 
 # get a dataframe with lat/long, recording ID, and locality
-allmeta.cc <- rbind(xcmeta.cc[,which(colnames(xcmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID", "Locality"))],
-                    mlmeta.cc[,which(colnames(mlmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID", "Locality"))])
+allmeta.cc <- rbind(xcmeta.cc[,which(colnames(xcmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID", "Locality", "Country"))],
+                    mlmeta.cc[,which(colnames(mlmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID", "Locality", "Country"))])
 
 
 # this is the full file path of the cleaned dataset
@@ -150,3 +150,7 @@ unique(allmeta.cc.final$Latitude)
 
 # the lat and long duplicates occupy the same rows and thus are true locality duplicates
 which(duplicated(allmeta.cc.final$Latitude)) == which(duplicated(allmeta.cc.final$Longitude))
+
+# Can the NAs be salvaged?
+allmeta.cc.final[which(is.na(allmeta.cc.final$Latitude)),]
+# We can possibly use locality and country to assign a rough lat/long for the NAs to save data
