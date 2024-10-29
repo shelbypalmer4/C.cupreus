@@ -91,6 +91,7 @@ write.csv(actualsims, "cuckoo_data_sims.csv", row.names = F)
 #### 28 October 2024: Determine number of unique lat/long combinations (this will be our proxy for individual) ####
 setwd("C:/Users/spalm/Desktop/C.cupreus")
 library(tools)
+library(dplyr)
 
 xcmeta.cc <- read.csv("XC_metadata.csv")
 mlmeta.cc <- read.csv("ML_metadata.csv")
@@ -150,6 +151,11 @@ unique(allmeta.cc.final$Latitude)
 
 # the lat and long duplicates occupy the same rows and thus are true locality duplicates
 which(duplicated(allmeta.cc.final$Latitude)) == which(duplicated(allmeta.cc.final$Longitude))
+
+# make a vector of unique lat/longs to be used for data simulations
+uniquelatlongs <- data.frame(latitude = unique(allmeta.cc.final$Latitude),
+                             longitude = unique(allmeta.cc.final$Longitude)) %>%
+  subset(., !is.na(uniquelatlongs$latitude))
 
 # Can the NAs be salvaged?
 allmeta.cc.final[which(is.na(allmeta.cc.final$Latitude)),]
