@@ -1,0 +1,144 @@
+---
+title: "Cuckoo Figures"
+author: "Shelby M Palmer"
+date: "2024-10-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+### Frequency Measurement Functions  
+Establish functions that take note-level and sub-note-level frequency measurements  
+```{r}
+# maximum frequency
+CCMaxFreq <- function(x, y, t, n) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- max(meanspec(x,
+                         from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                         to = y$s.start[j]+(y$s[j]*(n/t)), 
+                         flim=c(1, 6), 
+                         wl = 512,
+                         ovlp = 95,
+                         dB='max0',
+                         plot = F)[,1][meanspec(x,
+                                                from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                                                to = y$s.start[j]+(y$s[j]*(n/t)), 
+                                                flim=c(1, 6), 
+                                                wl = 512,
+                                                ovlp = 95, 
+                                                dB='max0',
+                                                plot = F)[,2]>crit])
+  }
+  return(z)
+}
+
+
+# minimum frequency
+CCMinFreq <- function(x,y,n,t) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- min(meanspec(x,
+                         from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                         to = y$s.start[j]+(y$s[j]*(n/t)), 
+                         flim=c(1, 6), 
+                         wl = 512,
+                         ovlp = 95,
+                         dB='max0',
+                         plot = F)[,1][meanspec(x,
+                                                from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                                                to = y$s.start[j]+(y$s[j]*(n/t)), 
+                                                flim=c(1, 6), 
+                                                wl = 512,
+                                                ovlp = 95, 
+                                                dB='max0',
+                                                plot = F)[,2]>crit])
+  }
+  return(z)
+}
+
+# peak frequency
+CCPeakFreq <- function(x,y,n,t) {
+  z <- c()
+  for (j in 1:length(y$s.start)) {
+    z[j] <- meanspec(x,
+                     from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                     to = y$s.start[j]+(y$s[j]*(n/t)), 
+                     flim=c(1, 6), 
+                     wl = 512,
+                     ovlp = 95,
+                     dB='max0',
+                     plot = F)[,1][match(c(0),
+                                          meanspec(x,
+                                          from = y$s.start[j]+(y$s[j]*((n-1)/t)),
+                                          to = y$s.start[j]+(y$s[j]*(n/t)), 
+                                     flim=c(1, 6), 
+                                     wl = 512,
+                                     ovlp = 95,
+                                     dB='max0',
+                                     plot = F)[,2])]
+  }
+  return(z)
+}
+
+```
+
+
+
+### A spectrogram of an African Emerald Cuckoo song with each frequency measurement displayed       
+```{r}
+setwd("C:/Users/spalm/Desktop/C.cupreus")
+
+# get an example recording
+library(tuneR)
+library(seewave)
+ccex <- readWave(paste(getwd(),
+                       "/sims_test/Chrysococcyx-cupreus-615909_0.04.wav",
+                       sep = ""))
+# make timer object
+ccex.s <- timer(ccex, threshold = 12, msmooth = c(256, 95), dmin = 0.01, plot = F)
+# set a critical value (dB below max amplitude)
+crit <- -20
+#
+# make spectrogram with slice frequency measurements overlaid
+spectro(ccex, 
+        scale = F, grid = F, 
+        flim = c(0,6),
+        tlim = c(0.4, duration(ccex)),
+        collevels = seq(-30, 0, by = 0.1),
+        ovlp = 95,
+        palette = reverse.gray.colors.2);
+for (i in 1:length(ccex.s$s)) {
+  for (j in 1:4) {
+      segments(y0 = CCMaxFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        y1 = CCMaxFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        x0 = ccex.s$s.start[i]+(ccex.s$s[i]*((j-1)/4)), 
+        x1 = ccex.s$s.start[i]+(ccex.s$s[i]*(j/4)),
+        col = "red"
+        )
+      segments(y0 = CCMinFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        y1 = CCMinFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        x0 = ccex.s$s.start[i]+(ccex.s$s[i]*((j-1)/4)), 
+        x1 = ccex.s$s.start[i]+(ccex.s$s[i]*(j/4)),
+        col = "green"
+        )
+      segments(y0 = CCPeakFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        y1 = CCPeakFreq(x = ccex, y = ccex.s, n = j, t = 4)[i],
+        x0 = ccex.s$s.start[i]+(ccex.s$s[i]*((j-1)/4)), 
+        x1 = ccex.s$s.start[i]+(ccex.s$s[i]*(j/4)),
+        col = "cyan"
+        )
+      segments(y0 = 1, y1 = 5,
+        x0 = ccex.s$s.start[i]+(ccex.s$s[i]*((j-1)/4)),
+        x1 = ccex.s$s.start[i]+(ccex.s$s[i]*((j-1)/4))
+        )
+  }
+  segments(y0 = 1, y1 = 5,
+           x0 = ccex.s$s.end[i],
+           x1 = ccex.s$s.end[i]
+  )
+  
+}
+
+```
