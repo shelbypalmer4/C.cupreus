@@ -1,3 +1,9 @@
+#### IN THIS SCRIPT
+# Spectrogram quality checks for new batch of recordings circa 2026
+# Metadata acquisition for new batch recordings
+# Initial run of of threshold-based frequency measurements on a subset of recordings
+
+
 #### Create spectrograms with timer() overlay for recording quality check and timer() amplitude threshold determination ####
 
 # set working directory to the location of the sound files
@@ -11,7 +17,7 @@ library(dplyr)
 # manually make a new folder in the working directory for the figures named "QC_10_figs"
 
 # function for generating images
-cutspec <- function(file, threshold) {
+cutspec <- function(file) {
   a <- readWave(file)
   png(filename = paste(getwd(), "/QC_10_figs/", file, ".png", sep = ""),
       width = 800,
@@ -99,7 +105,6 @@ ml2026 <- ml2026[which(ml2026$ML.Catalog.Number %in% newids$numberonly),]
 # write new file with post-check subset of the data
 write.csv(ml2026, "ml-metadata-2026-clean.csv", row.names = F)
 
-
 # XC 
 library(suwo)
 # make a dataframe with just xc recordings
@@ -119,5 +124,4 @@ for (i in 1:length(newids_xc$numberonly)){
 xc2026 <- xc2026[which(xc2026$key %in% newids_xc$numberonly_real),]
 # write to csv
 write.csv(xc2026, "xc-metadata-2026-clean.csv", row.names = F)
-
 

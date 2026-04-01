@@ -1,7 +1,9 @@
-#### C. cupreus DATA SIMULATION. 19 OCTOBER 2024 ####
+#### C. cupreus DATA SIMULATION. 19 OCTOBER 2024; re-run at the section level 24 March 2026 ####
 #
+setwd("C:/Users/spalm/OneDrive - University of Florida/Desktop/C.cupreus")
+
 # Read in data: Measurements taken from a single clean recording
-simsdf <- read.csv("C:/Users/spalm/Desktop/C.cupreus/simsdf_full.csv")
+simsdf <- read.csv("simsdf_full.csv")
 # unique numbers of songs produced
 n_songs <- c(1:12,14,15,18,22,29)
 # number of recordings for which the corresponding n_songs is true
