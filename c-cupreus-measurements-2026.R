@@ -37,7 +37,7 @@ fspec <- function(sound, section, img) {
   return(spect_fir)
   
 }
-fspec(test1, "first", img = T)
+fspec(test1, "first", img = F)
 
 # Write a function that defines frequencies containing a certain percentage of energy of sound
 # sound is the object name of a sound file in r
@@ -75,12 +75,42 @@ fspec_percentile <- function(sound, lower, upper, section) {
   energy_lower <- sum(spect_fir[,2])*lower
   energy_upper <- sum(spect_fir[,2])*upper
   
-  # return frequency values above and below upper and lower percenti
+  # return frequency values above and below upper and lower percentile
   return(spect_fir[which(cufr>energy_lower&cufr<energy_upper),1])
   
 }
 
 fspec_percentile(sound = test1, lower = 0.1, upper = 0.9, section = "first")
+
+# 22 May 2026: Write a function that defines frequencies by measuring down from the peak (the old way)
+fspec_crit <- function(sound, section, crit) {
+  # compute over only first or second song section
+  if (section == "first") {
+    spect_fir <- meanspec(sound,
+                          from = 0,
+                          to = duration(sound)*0.47,
+                          wl = 1024, ovlp = 98,
+                          dB = "max0",
+                          plot = F)
+  }
+  
+  if (section == "second") {
+    spect_fir <- meanspec(sound,
+                          from = duration(sound)*0.47,
+                          to = duration(sound),
+                          wl = 1024, ovlp = 98,
+                          dB = "max0",
+                          plot = F)
+  }
+  
+  
+  # return frequency spectrum above the critical value
+  return(
+    spect_fir[which(spect_fir[,2]>crit),1]
+  )
+  
+}
+fspec_crit(sound = test1, section = "first", crit = -20)
 
 # Peak frequency function
 peakfreq <- function(sound, section) {
@@ -110,7 +140,8 @@ peakfreq <- function(sound, section) {
 }
 peakfreq(sound = test1, section = "second")
 
-#### Initial measurement run ####
+
+#### Initial measurement run: Percentiles ####
 cc_run1 <- data.frame(filename = rep(list.files(), 2),
                       section = c(rep("first", 10), rep("second", 10)),
                       maxfreq = rep(NA, 20),
@@ -139,19 +170,40 @@ for (i in 1:length(list.files())) {
   }
 }
 
-# some maximum measurements are definitely affected by sound
+#### Initial measurement run: Critical value (22 May 2026) ####
+cc_run1 <- data.frame(filename = rep(list.files(), 2),
+                      section = c(rep("first", 10), rep("second", 10)),
+                      maxfreq = rep(NA, 20),
+                      minfreq = rep(NA, 20),
+                      peakfreq = rep(NA, 20),
+                      specentropy = rep(NA, 20))
+for (i in 1:length(list.files())) {
+  a <- readWave(list.files()[i]) %>%
+    fir(., from = 1000, to = 8000, bandpass = T, output = "Wave")
+  if (a@samp.rate!=44100) {
+    a <- resamp(a, g = 44100, output = "Wave")
+  }
+  for (j in which(cc_run1$filename==list.files()[i])) {
+    cc_run1$maxfreq[j] <- max(
+      fspec_crit(
+        sound = a, section = cc_run1$section[j], crit = -20
+      )
+    )
+    cc_run1$minfreq[j] <- min(
+      fspec_crit(
+        sound = a, section = cc_run1$section[j], crit = -20
+      )
+    )
+    cc_run1$peakfreq[j] <- peakfreq(sound = a, section = cc_run1$section[j])
+    cc_run1$specentropy[j] <- sh(fspec(sound = a, section = cc_run1$section[j], img = F))
+  }
+}
 
 # write
 write.csv(cc_run1, 
-          "C:/Users/spalm/OneDrive - University of Florida/Desktop/C.cupreus/test-measurements-2026.csv",
+          "C:/Users/spalm/OneDrive - University of Florida/Desktop/C.cupreus/test-measurements-2026_crit.csv",
           row.names = F)
 
-# slope or spectral flux?
-spectro(test1, flim = c(0,8), wl = 1024, ovlp = 20,
-        palette = reverse.gray.colors.2)
-par(new = T)
-dfreq(test1, ylim = c(0,8), 
-      threshold = 20, wl = 1024, ovlp = 20, col = "red")
 
 #### 28 October 2024: Determine number of unique lat/long combinations (this will be our proxy for individual) ####
 setwd("C:/Users/spalm/Desktop/C.cupreus")
@@ -250,10 +302,10 @@ sims2026 <- data.frame(filename = list.files(),
                       s2_peakfreq = rep(NA, length(list.files())),
                       s1_specentropy = rep(NA, length(list.files())),
                       s2_specentropy = rep(NA, length(list.files())),
-                      s1_maxposslope = rep(NA, length(list.files())),
-                      s2_maxposslope = rep(NA, length(list.files())),
-                      s1_maxnegslope = rep(NA, length(list.files())),
-                      s2_maxnegslope = rep(NA, length(list.files()))
+                      s1_maxslope = rep(NA, length(list.files())),
+                      s2_maxslope = rep(NA, length(list.files())),
+                      s1_minslope = rep(NA, length(list.files())),
+                      s2_minslope = rep(NA, length(list.files()))
                       )
 
 for (i in 1:length(list.files(pattern = "wav"))) {
@@ -269,16 +321,16 @@ for (i in 1:length(list.files(pattern = "wav"))) {
   s2df <- dftrace[round(length(dftrace[,1])*0.47):length(dftrace[,1]),]
   # get measurements
   sims2026$s1_maxfreq[i] = max(
-    fspec_percentile(sound = a, lower = 0.1, upper = 0.9, section = "first")
+    fspec_crit(sound = a, crit = -20, section = "first")
     )
   sims2026$s2_maxfreq[i] = max(
-    fspec_percentile(sound = a, lower = 0.1, upper = 0.9, section = "second")
+    fspec_crit(sound = a, crit = -20, section = "second")
   )
   sims2026$s1_minfreq[i] = min(
-    fspec_percentile(sound = a, lower = 0.1, upper = 0.9, section = "first")
+    fspec_crit(sound = a, crit = -20, section = "first")
   )
   sims2026$s2_minfreq[i] = min(
-    fspec_percentile(sound = a, lower = 0.1, upper = 0.9, section = "second")
+    fspec_crit(sound = a, crit = -20, section = "second")
   )
   sims2026$s1_peakfreq[i] = peakfreq(sound = a, section = "first")
   sims2026$s2_peakfreq[i] = peakfreq(sound = a, section = "second")
@@ -294,6 +346,10 @@ for (i in 1:length(list.files(pattern = "wav"))) {
   sims2026$s2_minslope[i] = min(diff(s2df[which(between(x = s2df[,2], 1, 5)),2]))
 }
 View(sims2026)
+# write out
+write.csv(sims2026, 
+          "C:/Users/spalm/OneDrive - University of Florida/Desktop/C.cupreus/simsdf_full_crit.csv",
+          row.names = F)
 
 #### Simulations at the note slice level 19 OCTOBER 2024; re-run at the song section level 24 March 2026 ####
 #
@@ -552,4 +608,26 @@ for (i in 1:length(list.files(pattern = "wav"))) {
   dev.off()
 
 }
-spectro(a)
+
+
+# checking a case where min freq appears = peak freq
+i <- 34
+meanspec(a, from = duration(a)*0.47, to = duration(a), 
+         flim = c(0,6),
+         wl = 1024, ovlp = 98)
+abline(v = max(
+  fspec_percentile(sound = a, 
+                   lower = 0.1, upper = 0.9, 
+                   section= "second")))
+abline(v = min(
+  fspec_percentile(sound = a, 
+                   lower = 0.1, upper = 0.9, 
+                   section= "second")))
+abline(v = peakfreq(sound = a, section = "second"))
+# two frequency peaks in the second part of the song...how to handle?
+
+spectro(a, wl = 512, ovlp = 98, scale = F, 
+        tlim = c(0, duration(a)*0.47))
+par(new = T)
+timer(a, msmooth = c(512, 98), plot = T, threshold = 30,
+      tlim = c(0, duration(a)*0.47))

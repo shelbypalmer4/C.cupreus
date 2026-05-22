@@ -1,22 +1,22 @@
-#### C. cupreus DATA SIMULATION. 19 OCTOBER 2024; re-run at the section level 24 March 2026 ####
+#### C. cupreus DATA SIMULATION. 19 OCTOBER 2024; re-run at the section level in 2026 ####
 #
 setwd("C:/Users/spalm/OneDrive - University of Florida/Desktop/C.cupreus")
 
 # Read in data: Measurements taken from a single clean recording
-simsdf <- read.csv("simsdf_full.csv")
+simsdf <- read.csv("simsdf_full_crit.csv")
 # unique numbers of songs produced
-n_songs <- c(1:12,14,15,18,22,29)
+# n_songs <- c(1:12,14,15,18,22,29)
+nsongsmd <- read.csv("curated_songs_metadata_06Mar2026.csv")
+nrec <- sort(nsongsmd$Songs)
 # number of recordings for which the corresponding n_songs is true
-number_of_samp_size_occurrence <- c(8,9,10,7,17,12,7,6,6,4,3,3,1,1,1,1,1)
-
+# number_of_samp_size_occurrence <- c(8,9,10,7,17,12,7,6,6,4,3,3,1,1,1,1,1)
 # make a vector whose length = total number of recordings and whose content reflects number of songs per recording (sum of nrec = total number of songs in dataset)
-nrec <- rep(n_songs[1], number_of_samp_size_occurrence[1])
-for (i in 2:length(n_songs)) {
-  nrec <- c(nrec, 
-            rep(n_songs[i], number_of_samp_size_occurrence[i])
-  )
-}
-
+# nrec <- rep(n_songs[1], number_of_samp_size_occurrence[1])
+# for (i in 2:length(n_songs)) {
+#   nrec <- c(nrec, 
+#             rep(n_songs[i], number_of_samp_size_occurrence[i])
+#   )
+# }
 
 # Make a vector of names of individuals to be simulated
 names <- rep(paste("ind", 1, sep = "_"), 
@@ -53,7 +53,7 @@ actualsims <- as.data.frame(
 colnames(actualsims) <- colnames(simsdf)
 
 # add simulated individual names to the ID column
-actualsims$ID <- names
+actualsims$filename <- names
 
 
 # loop
@@ -83,8 +83,13 @@ for (h in 2:length(colnames(actualsims))) {
 }
 
 # write out a .csv file
-write.csv(actualsims, "cuckoo_data_sims.csv", row.names = F)
+write.csv(actualsims, 
+          "cuckoo_data_sims_may2026.csv", 
+          row.names = F)
 
+#
+#
+#
 #
 #
 #
