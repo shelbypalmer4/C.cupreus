@@ -6,7 +6,7 @@ setwd("C:/Users/spalm/OneDrive - University of Florida/Desktop/C.cupreus")
 simsdf <- read.csv("simsdf_full_crit.csv")
 # unique numbers of songs produced
 # n_songs <- c(1:12,14,15,18,22,29)
-nsongsmd <- read.csv("curated_songs_metadata_06Mar2026.csv")
+nsongsmd <- read.csv("Curated_Songs_metadata_04Jun2026.csv")
 nrec <- sort(nsongsmd$Songs)
 # number of recordings for which the corresponding n_songs is true
 # number_of_samp_size_occurrence <- c(8,9,10,7,17,12,7,6,6,4,3,3,1,1,1,1,1)
@@ -84,7 +84,7 @@ for (h in 2:length(colnames(actualsims))) {
 
 # write out a .csv file
 write.csv(actualsims, 
-          "cuckoo_data_sims_may2026.csv", 
+          "cuckoo_data_sims_june2026.csv", 
           row.names = F)
 
 #
