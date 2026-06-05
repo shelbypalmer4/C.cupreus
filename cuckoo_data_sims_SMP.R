@@ -57,7 +57,7 @@ actualsims$filename <- names
 
 
 # loop
-# sorry for using h
+#
 # we start at 2 because the first column is just ID's
 for (h in 2:length(colnames(actualsims))) {
   # simulate measurements of the hth column for only the first value of `nrec`

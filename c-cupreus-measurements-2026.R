@@ -102,6 +102,10 @@ fspec_crit <- function(sound, section, crit) {
                           dB = "max0",
                           plot = F)
   }
+  if (section == "whole") {
+    spect_fir <- meanspec(sound, wl = 1024, ovlp = 98, plot = F,
+                          dB = "max0")
+  }
   
   
   # return frequency spectrum above the critical value
@@ -129,6 +133,9 @@ peakfreq <- function(sound, section) {
                           to = duration(sound),
                           wl = 1024, ovlp = 98,
                           plot = F)
+  }
+  if (section == "whole") {
+    spect_fir <- meanspec(sound, wl = 1024, ovlp = 98, plot = F)
   }
   
   
