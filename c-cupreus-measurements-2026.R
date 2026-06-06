@@ -74,12 +74,9 @@ fspec_percentile <- function(sound, lower, upper, section) {
   # define percentiles
   energy_lower <- sum(spect_fir[,2])*lower
   energy_upper <- sum(spect_fir[,2])*upper
-  
   # return frequency values above and below upper and lower percentile
   return(spect_fir[which(cufr>energy_lower&cufr<energy_upper),1])
-  
 }
-
 fspec_percentile(sound = test1, lower = 0.1, upper = 0.9, section = "first")
 
 # 22 May 2026: Write a function that defines frequencies by measuring down from the peak (the old way)
@@ -149,33 +146,33 @@ peakfreq(sound = test1, section = "second")
 
 
 #### Initial measurement run: Percentiles ####
-cc_run1 <- data.frame(filename = rep(list.files(), 2),
-                      section = c(rep("first", 10), rep("second", 10)),
-                      maxfreq = rep(NA, 20),
-                      minfreq = rep(NA, 20),
-                      peakfreq = rep(NA, 20),
-                      specentropy = rep(NA, 20))
-for (i in 1:length(list.files())) {
-  a <- readWave(list.files()[i]) %>%
-    fir(., from = 1000, to = 8000, bandpass = T, output = "Wave")
-  if (a@samp.rate!=44100) {
-    a <- resamp(a, g = 44100, output = "Wave")
-  }
-  for (j in which(cc_run1$filename==list.files()[i])) {
-    cc_run1$maxfreq[j] <- max(
-      fspec_percentile(
-        sound = a, lower = 0.25, upper = 0.75, section = cc_run1$section[j]
-      )
-    )
-    cc_run1$minfreq[j] <- min(
-      fspec_percentile(
-        sound = a, lower = 0.25, upper = 0.75, section = cc_run1$section[j]
-      )
-    )
-    cc_run1$peakfreq[j] <- peakfreq(sound = a, section = cc_run1$section[j])
-    cc_run1$specentropy[j] <- sh(fspec(sound = a, section = cc_run1$section[j]))
-  }
-}
+# cc_run1 <- data.frame(filename = rep(list.files(), 2),
+#                       section = c(rep("first", 10), rep("second", 10)),
+#                       maxfreq = rep(NA, 20),
+#                       minfreq = rep(NA, 20),
+#                       peakfreq = rep(NA, 20),
+#                       specentropy = rep(NA, 20))
+# for (i in 1:length(list.files())) {
+#   a <- readWave(list.files()[i]) %>%
+#     fir(., from = 1000, to = 8000, bandpass = T, output = "Wave")
+#   if (a@samp.rate!=44100) {
+#     a <- resamp(a, g = 44100, output = "Wave")
+#   }
+#   for (j in which(cc_run1$filename==list.files()[i])) {
+#     cc_run1$maxfreq[j] <- max(
+#       fspec_percentile(
+#         sound = a, lower = 0.25, upper = 0.75, section = cc_run1$section[j]
+#       )
+#     )
+#     cc_run1$minfreq[j] <- min(
+#       fspec_percentile(
+#         sound = a, lower = 0.25, upper = 0.75, section = cc_run1$section[j]
+#       )
+#     )
+#     cc_run1$peakfreq[j] <- peakfreq(sound = a, section = cc_run1$section[j])
+#     cc_run1$specentropy[j] <- sh(fspec(sound = a, section = cc_run1$section[j]))
+#   }
+# }
 
 #### Initial measurement run: Critical value (22 May 2026) ####
 cc_run1 <- data.frame(filename = rep(list.files(), 2),
@@ -293,12 +290,33 @@ setwd("C:/Users/spalm/OneDrive - University of Florida/Desktop/C.cupreus/sims_te
 library(tuneR)
 library(seewave)
 library(dplyr)
+# get 1 file to test stuff
 simstest <- readWave(list.files()[1]) %>%
   fir(., from = 1000, to = 5000, bandpass = T, output = "Wave")
+
 dftest <- dfreq(simstest, threshold = 20, wl = 512, ovlp = 20, plot = T)
 s1df <- dftest[1:round(length(dftest[,1])*0.47),]
 s1df <- s1df[which(s1df[,2]>1),]
 diff(na.omit(s1df[,2]))
+
+# 06 june 2026: function for durations of sound sections 
+dur_sec <- function(sound, section, threshold) {
+  if(section == "first") {
+    a <- cutw(sound, 
+              from = 0, to = duration(sound)*0.47,
+              output = "Wave")
+  }
+  if(section == "second") {
+    a <- cutw(sound, 
+              from = duration(sound)*0.47, to = duration(sound),
+              output = "Wave")
+  }
+    b <- timer(a, 
+               msmooth = c(256, 98), dmin = 0.05, 
+               threshold = threshold, plot = F)
+    return(b$s.end[length(b$s.end)]-b$s.start[1])
+}
+dur_sec(sound = simstest, section = "second", threshold = 10)
 
 sims2026 <- data.frame(filename = list.files(),
                       s1_maxfreq = rep(NA, length(list.files())),
@@ -312,7 +330,9 @@ sims2026 <- data.frame(filename = list.files(),
                       s1_maxslope = rep(NA, length(list.files())),
                       s2_maxslope = rep(NA, length(list.files())),
                       s1_minslope = rep(NA, length(list.files())),
-                      s2_minslope = rep(NA, length(list.files()))
+                      s2_minslope = rep(NA, length(list.files())),
+                      s1_duration = rep(NA, length(list.files())),
+                      s2_duration = rep(NA, length(list.files()))
                       )
 
 for (i in 1:length(list.files(pattern = "wav"))) {
@@ -324,7 +344,7 @@ for (i in 1:length(list.files(pattern = "wav"))) {
   }
   # get section 1 and 2 dominant frequency traces
   dftrace <- dfreq(a, threshold = 20, wl = 512, ovlp = 20, plot = F)
-  s1df <- dftrace[1:round(length(dftest[,1])*0.47),]
+  s1df <- dftrace[1:round(length(dftrace[,1])*0.47),]
   s2df <- dftrace[round(length(dftrace[,1])*0.47):length(dftrace[,1]),]
   # get measurements
   sims2026$s1_maxfreq[i] = max(
@@ -351,6 +371,8 @@ for (i in 1:length(list.files(pattern = "wav"))) {
   sims2026$s2_maxslope[i] = max(diff(s2df[which(between(x = s2df[,2], 1, 5)),2]))
   sims2026$s1_minslope[i] = min(diff(s1df[which(between(x = s1df[,2], 1, 5)),2]))
   sims2026$s2_minslope[i] = min(diff(s2df[which(between(x = s2df[,2], 1, 5)),2]))
+  sims2026$s1_duration[i] = dur_sec(sound = a, section = "first", threshold = 10)
+  sims2026$s2_duration[i] = dur_sec(sound = a, section = "second", threshold = 10)
 }
 View(sims2026)
 # write out
