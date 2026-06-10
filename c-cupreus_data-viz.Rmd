@@ -14,21 +14,25 @@ Read in XC and ML metadata containing lat/long
 Map points onto a projection of Africa  
 ```{r}
 library(dplyr)
-setwd("C:/Users/spalm/Desktop/C.cupreus")
-xcmeta.cc <- read.csv("XC_metadata.csv")
-mlmeta.cc <- read.csv("ML_metadata.csv")
-usable.cc <- read.csv("usable_recordings.csv")
+# setwd("C:/Users/spalm/Desktop/C.cupreus")
+setwd("C:/Users/spalm/OneDrive - University of Florida/Desktop/C.cupreus")
+# xcmeta.cc <- read.csv("XC_metadata.csv")
+# mlmeta.cc <- read.csv("ML_metadata.csv")
+# usable.cc <- read.csv("usable_recordings.csv")
 
 # rename ID column for ML recordings
-colnames(mlmeta.cc)[which(colnames(mlmeta.cc)=="ML.Catalog.Number")] <- "Recording_ID"
+# colnames(mlmeta.cc)[which(colnames(mlmeta.cc)=="ML.Catalog.Number")] <- "Recording_ID"
 
 # get a dataframe with lat/long and recording ID
-latlong.cc <- rbind(xcmeta.cc[,which(colnames(xcmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID"))],
-                    mlmeta.cc[,which(colnames(mlmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID"))])
+# latlong.cc <- rbind(xcmeta.cc[,which(colnames(xcmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID"))],
+#                     mlmeta.cc[,which(colnames(mlmeta.cc)%in%c("Latitude", "Longitude", "Recording_ID"))])
+# 
+# # subset to only high-quality recordings and remove NAs
+# latlong.cc <- latlong.cc[which(latlong.cc$Recording_ID %in% usable.cc$Recording_ID),]
+# latlong.cc <- latlong.cc[-which(is.na(latlong.cc$Latitude)),]
 
-# subset to only high-quality recordings and remove NAs
-latlong.cc <- latlong.cc[which(latlong.cc$Recording_ID %in% usable.cc$Recording_ID),]
-latlong.cc <- latlong.cc[-which(is.na(latlong.cc$Latitude)),]
+# 2026 version: Get most current lat/long data 
+latlong.cc <- read.csv("Curated_Songs_metadata_09Jun2026.csv")
 
 ### Make a map
 library(ggplot2)
@@ -41,7 +45,7 @@ library(afrilearndata) # shapefiles for Africa
 cc_shape <- st_read(dsn = "./redlist_species_data_c-cupreus", layer = "data_0")
 
 # Make the map
-png("cc_map_range.png",
+png("cc_map_range_2026.png",
     width = 7,
     height = 7,
     units = "in",
@@ -59,10 +63,9 @@ ggplot() +
   geom_point(data = latlong.cc, 
              aes(x = Longitude, 
                  y = Latitude),
-             size = 1.5,
+             size = 1,
              color = "black",
-             alpha = 0.5,
-             shape = 19) +
+             alpha = 0.5) +
   coord_sf(xlim = c(-20, 52),
            ylim = c(-35, 20)) +
   theme_bw()
